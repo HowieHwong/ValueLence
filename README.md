@@ -14,6 +14,7 @@
   <em>ValueLence Demo Home Interface</em>
 </p>
 
+
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.8%2B-blue?style=flat-square" alt="Python Version">
   <img src="https://img.shields.io/badge/Backend-Flask-red?style=flat-square" alt="Flask Backend">

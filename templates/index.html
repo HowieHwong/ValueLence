@@ -2288,7 +2288,6 @@
                     if (savedApiSettings) {
                         const apiSettings = JSON.parse(savedApiSettings);
                         
-                        // 填充OpenAI设置
                         if (apiSettings.openai) {
                             document.getElementById('openaiApiKey').value = apiSettings.openai.api_key || '';
                             document.getElementById('openaiOrgId').value = apiSettings.openai.org_id || '';
@@ -2310,18 +2309,17 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            // 填充模型设置
+                            
                             if (data.settings.models) {
                                 const models = data.settings.models;
                                 
-                                // OpenAI模型
                                 if (models.openai) {
                                     if (models.openai.default_model) {
                                         document.getElementById('openaiDefaultModel').value = models.openai.default_model;
                                     }
                                     
                                     if (models.openai.available_models && Array.isArray(models.openai.available_models)) {
-                                        // 重置所有复选框
+                                        
                                         document.querySelectorAll('input[id^="model-gpt-"]').forEach(checkbox => {
                                             checkbox.checked = false;
                                         });
