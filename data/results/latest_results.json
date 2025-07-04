@@ -1,0 +1,9 @@
+{
+  "care_harm": {
+    "internal_consistency": 0.48491849703227335,
+    "robustness": 0.9175869595251638,
+    "convergent_validity": 0.7279211152738785,
+    "alignment_score": 0.49214353181939363,
+    "sample_size": 5
+  }
+}

@@ -1,0 +1,99 @@
+.modal, #humanEvaluationModal {
+    z-index: 9999 !important;
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 1rem; /* Use rem for scalable padding */
+}
+
+#humanEvaluationModal.hidden {
+    display: none !important;
+}
+
+/* Ensure modal backdrop is visible */
+#humanEvaluationModal::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-color: rgba(17, 24, 39, 0.8); /* Darker backdrop */
+    backdrop-filter: blur(8px);
+    z-index: -1;
+}
+
+/* Main modal container */
+#humanEvaluationModal > .bg-gray-900 {
+    max-height: 95vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Make content area flexible and scrollable */
+#humanEvaluationModal .flex-1 {
+    display: flex;
+    overflow: hidden; /* Hide outer scrollbar */
+    min-height: 0; /* Fix for flexbox shrinking issue */
+}
+
+.evaluation-panel {
+    min-height: 0; /* Ensures panel can shrink */
+}
+
+@media (max-width: 768px) {
+    #humanEvaluationModal .flex-1 {
+        flex-direction: column;
+        overflow-y: auto; /* Allow vertical scrolling on mobile */
+    }
+    
+    #humanEvaluationModal .md\:w-1\/2 {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #374151; /* Add bottom border on mobile */
+    }
+}
+
+/* Custom scrollbar for panels */
+#humanEvaluationModal .overflow-y-auto::-webkit-scrollbar {
+    width: 6px;
+}
+#humanEvaluationModal .overflow-y-auto::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+#humanEvaluationModal .overflow-y-auto::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+#humanEvaluationModal .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* Analysis page select input styling */
+select.frost-input {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+
+/* Adding styles to fix menu clicking issues */
+.nav-item a {
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 10;
+}
+
+.sidebar nav {
+    position: relative;
+    z-index: 10;
+}
+
+/* Ensure proper event bubbling */
+.nav-item, .sidebar {
+    pointer-events: auto !important;
+} 

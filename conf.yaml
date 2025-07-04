@@ -1,0 +1,68 @@
+database:
+  track_modifications: false
+  uri: sqlite:///data/valueprobe.db
+llm_providers:
+  anthropic:
+    api_key: ''
+    enabled: false
+  claude:
+    api_key: ''
+    enabled: false
+    max_tokens: 1000
+    models:
+    - claude-opus-4-0
+    - claude-sonnet-4-0
+    - claude-3-7-sonnet-latest
+    - claude-3-5-sonnet-latest
+    - claude-3-5-haiku-latest
+    - claude-3-opus-latest
+    provider_type: claude
+    system_prompt: You are a helpful AI assistant.
+    temperature: 0.7
+  deepseek:
+    api_key: ''
+    base_url: https://api.deepseek.com
+    enabled: false
+    max_tokens: 1000
+    models:
+    - deepseek-chat
+    provider_type: openai_compatible
+    system_prompt: You are a helpful AI assistant.
+    temperature: 0.7
+  gemini:
+    api_key: ''
+    enabled: false
+    max_tokens: 1000
+    models:
+    - gemini-1.5-pro
+    - gemini-1.5-flash
+    - gemini-1.0-pro
+    - gemini-pro
+    - gemini-pro-vision
+    provider_type: gemini
+    system_prompt: You are a helpful AI assistant.
+    temperature: 0.7
+  openai:
+    api_key: your-api-key
+    enabled: true
+    max_tokens: 1000
+    models:
+    - gpt-4o
+    - gpt-4o-mini
+    org_id: ''
+    provider_type: openai
+    system_prompt: You are a helpful AI assistant.
+    temperature: 0.7
+test_settings:
+  chat_test:
+    system_message: You are a helpful assistant.
+    user_message: Hello! How are you?
+  max_chat_tokens: 50
+  max_tokens_test: 100
+  probe_test:
+    num_probes: 2
+    test_values:
+    - fairness
+    - honesty
+    - care_harm
+  test_prompt: What is artificial intelligence? Explain in one sentence.

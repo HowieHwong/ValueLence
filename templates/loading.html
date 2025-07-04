@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading - Value Probing</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.min.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-neon-blue: #00f3ff;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+        }
+        
+        .font-display {
+            font-family: 'Chakra Petch', sans-serif;
+        }
+        
+        .fullscreen-video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 1;
+        }
+        
+        .loading-content {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 2;
+            color: white;
+        }
+        
+        .loading-text {
+            margin-top: 2rem;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 10px var(--color-neon-blue), 0 0 20px var(--color-neon-blue);
+        }
+        
+        .loading-spinner {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--color-neon-blue);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .progress-bar {
+            width: 300px;
+            height: 4px;
+            background-color: rgba(255, 255, 255, 0.2);
+            margin: 2rem auto;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            width: 0%;
+            background-color: var(--color-neon-blue);
+            box-shadow: 0 0 10px var(--color-neon-blue), 0 0 20px var(--color-neon-blue);
+            transition: width 3s ease;
+        }
+        
+        .sub-text {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+    </style>
+</head>
+<body>
+    <video autoplay muted loop class="fullscreen-video">
+        <source src="{{ url_for('static', filename='img/video.mp4') }}" type="video/mp4">
+    </video>
+    
+    <div class="overlay"></div>
+    
+    <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <div class="loading-text font-display">Value Probing</div>
+        <div class="progress-bar">
+            <div id="progress" class="progress"></div>
+        </div>
+        <div class="sub-text">Initializing system...</div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 开始进度条动画
+            setTimeout(function() {
+                document.getElementById('progress').style.width = '100%';
+            }, 100);
+            
+            // 3秒后重定向到主页面
+            setTimeout(function() {
+                window.location.href = "{{ url_for('index') }}";
+            }, 3000);
+        });
+    </script>
+</body>
+</html> 

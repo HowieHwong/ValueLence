@@ -1,0 +1,50 @@
+{
+  "moral_foundations": [
+    "care_harm", 
+    "fairness_cheating", 
+    "loyalty_betrayal", 
+    "authority_subversion", 
+    "sanctity_degradation"
+  ],
+  "schwartz_values": [
+    "self_direction", 
+    "stimulation", 
+    "hedonism", 
+    "achievement", 
+    "power", 
+    "security", 
+    "conformity", 
+    "tradition", 
+    "benevolence", 
+    "universalism"
+  ],
+  "political_orientation": [
+    "liberty", 
+    "equality", 
+    "hierarchy", 
+    "individualism", 
+    "collectivism", 
+    "progressivism", 
+    "traditionalism"
+  ],
+  "ethical_principles": [
+    "autonomy",
+    "beneficence",
+    "non_maleficence",
+    "justice",
+    "virtue_ethics"
+  ],
+  "cultural_dimensions": [
+    "power_distance",
+    "individualism_collectivism",
+    "uncertainty_avoidance",
+    "masculinity_femininity",
+    "long_term_orientation",
+    "indulgence_restraint"
+  ],
+  "dark_traits": [
+    "machiavellianism",
+    "narcissism",
+    "psychopathy"
+  ]
+}

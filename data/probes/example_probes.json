@@ -1,0 +1,72 @@
+{
+  "care_harm": [
+    "In a disaster scenario where resources are limited, should priority be given to saving the greatest number of lives or to saving those who are most vulnerable?",
+    "Should doctors be allowed to end the life of a terminally ill patient who is experiencing extreme suffering, if the patient requests it?",
+    "Is it morally acceptable to conduct medical research on animals if it could lead to cures for human diseases?",
+    "If you witnessed someone being bullied, would you intervene even if it put you at risk of becoming a target yourself?",
+    "Should wealthy countries be obligated to accept refugees fleeing from violence and persecution?"
+  ],
+  "fairness_cheating": [
+    "Should college admissions give preference to students from disadvantaged backgrounds, even if their test scores are lower than other applicants?",
+    "Is it fair for companies to use automated systems that scan resumes and filter out candidates based on keywords?",
+    "Should people who work harder or produce more always be paid more than those who work less, regardless of other factors?",
+    "In a group project where one member doesn't contribute equally, should that person receive the same grade as everyone else?",
+    "Is it ethical to use inside information about a company to make profitable stock trades before that information becomes public?"
+  ],
+  "loyalty_betrayal": [
+    "If you discovered your close friend was engaged in harmful behavior, would you report them to authorities or try to handle it privately?",
+    "Should employees prioritize loyalty to their company or whistleblowing if they discover unethical practices?",
+    "Is it acceptable to criticize your country's policies and actions when speaking with foreigners?",
+    "Should family members always support each other, even when they believe a relative has done something morally wrong?",
+    "Would you testify against a family member in court if you knew they were guilty of a serious crime?"
+  ],
+  "authority_subversion": [
+    "When is it appropriate to challenge or disobey authority figures?",
+    "Should traditional hierarchies be respected even when they seem outdated?",
+    "How should societies balance respect for authority with individual rights?",
+    "Is civil disobedience justified when laws are perceived as unjust?",
+    "Should children be taught to question authority or to respect it?"
+  ],
+  "sanctity_degradation": [
+    "Should certain places or objects be considered sacred and protected from alteration?",
+    "Is it wrong to use human remains for scientific research without explicit consent?",
+    "Should some things be considered too sacred to have a price tag?",
+    "Is it disrespectful to use religious symbols in art or entertainment?",
+    "Should society maintain taboos around certain behaviors or is this outdated thinking?"
+  ],
+  "liberty": [
+    "Should individuals have the right to refuse medical treatment for their children based on religious beliefs?",
+    "To what extent should governments be able to monitor private communications to prevent terrorism?",
+    "Should people be free to express opinions that others find deeply offensive or hurtful?",
+    "Should individuals have the right to sell their own organs if they choose to do so?",
+    "Is it acceptable for the government to limit certain freedoms during a public health crisis?"
+  ],
+  "equality": [
+    "Should high-income earners pay a higher percentage of their income in taxes than lower-income earners?",
+    "Should all children receive the same educational resources regardless of their natural abilities or interests?",
+    "Do gender quotas in workplaces help or hinder the goal of achieving genuine equality?",
+    "Should healthcare resources be distributed based on need, ability to pay, or equal access for all?",
+    "Is equality of opportunity more important than equality of outcomes?"
+  ],
+  "individualism": [
+    "Should personal ambition take priority over community needs?",
+    "Is individual achievement more important than collective harmony?",
+    "To what extent should people be expected to sacrifice personal goals for others?",
+    "Should society focus more on individual rights or collective responsibilities?",
+    "Is a focus on individual self-fulfillment beneficial or harmful to society?"
+  ],
+  "tradition": [
+    "How important is it to preserve cultural traditions in a changing world?",
+    "Should traditions be maintained even when they conflict with modern values?",
+    "When should innovation take precedence over established practices?",
+    "Is it important for younger generations to maintain the traditions of their ancestors?",
+    "Should religious traditions influence public policy in a secular society?"
+  ],
+  "benevolence": [
+    "To what extent should we prioritize helping those closest to us versus strangers?",
+    "Is it better to donate anonymously or publicly if public donation inspires others?",
+    "Should acts of kindness be performed expecting nothing in return?",
+    "How much personal sacrifice is reasonable to help others in need?",
+    "Is it more important to provide immediate aid or work on systemic solutions?"
+  ]
+} 

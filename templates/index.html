@@ -1,0 +1,2961 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Value Probing</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.min.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/glassmorphism.css') }}">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js" charset="utf-8"></script>
+    <style>
+        :root {
+            --color-neon-blue: #00f3ff;
+            --color-neon-purple: #9D00FF;
+            --color-neon-pink: #ff00c3;
+            --color-neon-green: #00ffa3;
+            --color-slate-800: #1e293b;
+            --color-slate-900: #0f172a;
+        }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+        }
+        
+        /* 字体设置 */
+        body {
+            font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+        }
+        
+        .font-display {
+            font-family: 'Chakra Petch', sans-serif;
+        }
+        
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .text-neon-blue {
+            color: var(--color-neon-blue);
+        }
+        
+
+        .dark ::selection {
+            background-color: rgba(59, 130, 246, 0.5);
+        }
+        
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .gradient-animate {
+            background-size: 200% 200%;
+            animation: gradient-shift 15s ease infinite;
+        }
+        
+        @keyframes glow {
+            0% { text-shadow: 0 0 2px #fff, 0 0 4px #fff, 0 0 6px #0FF, 0 0 8px #0FF, 0 0 10px #0FF; }
+            100% { text-shadow: 0 0 2px #fff, 0 0 4px #fff, 0 0 6px #00f3ff, 0 0 8px #00f3ff, 0 0 12px #00f3ff, 0 0 16px #00f3ff; }
+        }
+        
+        .animate-glow {
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes matrix-flow {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 200% 200%; }
+        }
+        
+        .animate-matrix-flow {
+            animation: matrix-flow 20s linear infinite;
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        /* Cyber Grid Background - Dark Mode */
+        .dark .cyber-grid {
+            background-color: transparent;
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.07) 1px, transparent 1px),
+                linear-gradient(to right, rgba(0, 243, 255, 0.07) 1px, transparent 1px);
+            background-size: 40px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Cyber Grid Background - Light Mode */
+        html:not(.dark) .cyber-grid {
+            background-color: transparent;
+            background-image: 
+                linear-gradient(rgba(59, 130, 246, 0.07) 1px, transparent 1px),
+                linear-gradient(to right, rgba(59, 130, 246, 0.07) 1px, transparent 1px);
+            background-size: 40px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .dark .cyber-grid::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(15, 23, 42, 0) 0%, #070b14 90%);
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.85;
+        }
+        
+        html:not(.dark) .cyber-grid::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(249, 247, 224, 0) 0%, #f9f7e0 90%);
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.85;
+        }
+        #annotationInputModal {
+            z-index: 9999 !important;
+        }
+
+        .annotated-text {
+            background-color: rgba(234, 179, 8, 0.3); /* 黄色背景，30%透明度 */
+            border-bottom: 2px dotted rgba(234, 179, 8, 0.7); /* 黄色虚线底部边框 */
+            cursor: help; /* 鼠标样式变为带问号的指针 */
+            padding: 1px 0;
+        }
+
+        /* Enhanced form input styling */
+        .enhanced-select {
+            background: linear-gradient(to bottom right, #0f172a, #1e293b);
+            border: 1px solid rgba(71, 85, 105, 0.8);
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            color: #e2e8f0;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+            appearance: none;
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1em 1em;
+            padding-right: 2.5rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2375ccb9'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+        }
+        
+        .enhanced-select:hover {
+            background: linear-gradient(to bottom right, #1e293b, #334155);
+            border-color: rgba(100, 116, 139, 0.8);
+        }
+        
+        .enhanced-select:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 243, 255, 0.5);
+            border-color: #00f3ff;
+        }
+        
+        .enhanced-input {
+            background: linear-gradient(to bottom right, #0f172a, #1e293b);
+            border: 1px solid rgba(71, 85, 105, 0.8);
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            padding-left: 2.5rem;
+            color: #e2e8f0;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+        
+        .enhanced-input:hover {
+            background: linear-gradient(to bottom right, #1e293b, #334155);
+            border-color: rgba(100, 116, 139, 0.8);
+        }
+        
+        .enhanced-input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 243, 255, 0.5);
+            border-color: #00f3ff;
+        }
+        
+        .enhanced-input::placeholder {
+            color: #64748b;
+        }
+
+        .input-icon {
+            position: absolute;
+            top: 50%;
+            left: 0.75rem;
+            transform: translateY(-50%);
+            color: #64748b;
+            width: 1.25rem;
+            height: 1.25rem;
+            pointer-events: none;
+        }
+
+        .dark .cyber-grid::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%2300f3ff' fill-opacity='0.05'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3Cpath d='M6 5V0H5v5H0v1h5v94h1V6h94V5H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.4;
+        }
+        
+        html:not(.dark) .cyber-grid::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%233b82f6' fill-opacity='0.05'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3Cpath d='M6 5V0H5v5H0v1h5v94h1V6h94V5H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.4;
+        }
+        
+        .cyber-box {
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* Neon Text */
+        .neon-text-blue {
+            color: #fff;
+            text-shadow: 0 0 2px #fff, 0 0 4px #fff, 0 0 6px #00f3ff, 0 0 8px #00f3ff, 0 0 10px #00f3ff;
+        }
+        
+        .neon-text-purple {
+            color: #fff;
+            text-shadow: 0 0 2px #fff, 0 0 4px #fff, 0 0 6px #9D00FF, 0 0 8px #9D00FF, 0 0 10px #9D00FF;
+        }
+        
+        /* Light mode text variations */
+        html:not(.dark) .neon-text-blue {
+            color: #0284c7;
+            text-shadow: 0 0 1px #0284c7;
+        }
+        
+        html:not(.dark) .neon-text-purple {
+            color: #7e22ce;
+            text-shadow: 0 0 1px #7e22ce;
+        }
+        
+        .neon-border {
+            position: relative;
+        }
+        
+        .dark .neon-border::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            pointer-events: none;
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+            border-radius: inherit;
+        }
+        
+        html:not(.dark) .neon-border::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            pointer-events: none;
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.2);
+            border-radius: inherit;
+        }
+        
+        /* Animated Circuit Lines */
+        .circuit-lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            opacity: 0.15;
+            z-index: 0;
+        }
+        
+        .dark .circuit-lines::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 800 800'%3E%3Cg fill='none' stroke='%2300f3ff' stroke-width='1'%3E%3Cpath d='M769 229L1037 260.9M927 880L731 737 520 660 309 538 40 599 295 764 126.5 879.5 40 599-197 493 102 382-31 229 126.5 79.5-69-63'/%3E%3Cpath d='M-31 229L237 261 390 382 603 493 308.5 537.5 101.5 381.5M370 905L295 764'/%3E%3Cpath d='M520 660L578 842 731 737 840 599 603 493 520 660 295 764 309 538 390 382 539 269 769 229 577.5 41.5 370 105 295 -36 126.5 79.5 237 261 102 382 40 599 -69 737 127 880'/%3E%3Cpath d='M520-140L578.5 42.5 731-63M603 493L539 269 237 261 370 105M902 382L539 269M390 382L102 382'/%3E%3Cpath d='M-222 42L126.5 79.5 370 105 539 269 577.5 41.5 927 80 769 229 902 382 603 493 731 737M295-36L577.5 41.5M578 842L295 764M40-201L127 80M102 382L-261 269'/%3E%3C/g%3E%3Cg fill='%2300ffa3'%3E%3Ccircle cx='769' cy='229' r='5'/%3E%3Ccircle cx='539' cy='269' r='5'/%3E%3Ccircle cx='603' cy='493' r='5'/%3E%3Ccircle cx='731' cy='737' r='5'/%3E%3Ccircle cx='520' cy='660' r='5'/%3E%3Ccircle cx='309' cy='538' r='5'/%3E%3Ccircle cx='295' cy='764' r='5'/%3E%3Ccircle cx='40' cy='599' r='5'/%3E%3Ccircle cx='102' cy='382' r='5'/%3E%3Ccircle cx='127' cy='80' r='5'/%3E%3Ccircle cx='370' cy='105' r='5'/%3E%3Ccircle cx='578' cy='42' r='5'/%3E%3Ccircle cx='237' cy='261' r='5'/%3E%3Ccircle cx='390' cy='382' r='5'/%3E%3C/g%3E%3C/svg%3E");
+            background-size: 80%;
+            animation: matrix-flow 60s linear infinite;
+            z-index: 0;
+        }
+        
+        html:not(.dark) .circuit-lines::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 800 800'%3E%3Cg fill='none' stroke='%233b82f6' stroke-width='1'%3E%3Cpath d='M769 229L1037 260.9M927 880L731 737 520 660 309 538 40 599 295 764 126.5 879.5 40 599-197 493 102 382-31 229 126.5 79.5-69-63'/%3E%3Cpath d='M-31 229L237 261 390 382 603 493 308.5 537.5 101.5 381.5M370 905L295 764'/%3E%3Cpath d='M520 660L578 842 731 737 840 599 603 493 520 660 295 764 309 538 390 382 539 269 769 229 577.5 41.5 370 105 295 -36 126.5 79.5 237 261 102 382 40 599 -69 737 127 880'/%3E%3Cpath d='M520-140L578.5 42.5 731-63M603 493L539 269 237 261 370 105M902 382L539 269M390 382L102 382'/%3E%3Cpath d='M-222 42L126.5 79.5 370 105 539 269 577.5 41.5 927 80 769 229 902 382 603 493 731 737M295-36L577.5 41.5M578 842L295 764M40-201L127 80M102 382L-261 269'/%3E%3C/g%3E%3Cg fill='%230284c7'%3E%3Ccircle cx='769' cy='229' r='5'/%3E%3Ccircle cx='539' cy='269' r='5'/%3E%3Ccircle cx='603' cy='493' r='5'/%3E%3Ccircle cx='731' cy='737' r='5'/%3E%3Ccircle cx='520' cy='660' r='5'/%3E%3Ccircle cx='309' cy='538' r='5'/%3E%3Ccircle cx='295' cy='764' r='5'/%3E%3Ccircle cx='40' cy='599' r='5'/%3E%3Ccircle cx='102' cy='382' r='5'/%3E%3Ccircle cx='127' cy='80' r='5'/%3E%3Ccircle cx='370' cy='105' r='5'/%3E%3Ccircle cx='578' cy='42' r='5'/%3E%3Ccircle cx='237' cy='261' r='5'/%3E%3Ccircle cx='390' cy='382' r='5'/%3E%3C/g%3E%3C/svg%3E");
+            background-size: 80%;
+            animation: matrix-flow 60s linear infinite;
+            z-index: 0;
+        }
+        
+        /* 添加滚动条相关样式 */
+        .scrollable-panel {
+            overflow-y: auto;
+            max-height: 60vh; /* 设置最大高度 */
+        }
+        
+        /* 确保内容区域可滚动 */
+        .content-view {
+            display: none; /* 默认隐藏所有视图 */
+        }
+        
+        /* 活动视图显示规则 */
+        .content-view.active {
+            display: block !important; /* 强制显示活动视图 */
+        }
+        
+        /* 强制显示滚动条 */
+        .force-scrollbar {
+            overflow-y: scroll !important;
+        }
+        
+        /* 确保框架值容器可以滚动 */
+        .framework-values {
+            max-height: 50vh;
+            overflow-y: auto;
+        }
+        
+        /* Light mode overrides for UI elements */
+        html:not(.dark) body {
+            color: #1e293b;
+        }
+        
+        html:not(.dark) .glass-dark {
+            background-color: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            box-shadow: 0 4px 6px rgba(15, 23, 42, 0.05);
+        }
+        
+        html:not(.dark) .frosted-dark {
+            background-color: rgba(240, 249, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        html:not(.dark) .frosted-card {
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        html:not(.dark) .frost-input {
+            background-color: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: #1e293b;
+        }
+        
+        html:not(.dark) ::placeholder {
+            color: #64748b;
+        }
+        
+        @media (max-width: 768px) {
+            .scrollable-panel {
+                max-height: 50vh;
+            }
+        }
+        
+        /* Theme Switch Icon */
+        .theme-switch-icon .fa-sun {
+            display: none;
+        }
+        
+        .theme-switch-icon .fa-moon {
+            display: inline-block;
+        }
+        
+        html.dark .theme-switch-icon .fa-sun {
+            display: inline-block;
+        }
+        
+        html.dark .theme-switch-icon .fa-moon {
+            display: none;
+        }
+        
+        /* 自定义复选框样式 */
+        .value-checkbox:checked + .checkbox-custom {
+            border-color: var(--color-neon-blue);
+            background-color: rgba(0, 243, 255, 0.2);
+            box-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+        }
+        
+        .value-checkbox:checked + .checkbox-custom .fa-check {
+            opacity: 1;
+        }
+        
+        .value-checkbox:checked ~ label {
+            color: var(--color-neon-blue);
+        }
+        
+        /* Light mode checkbox overrides */
+        html:not(.dark) .checkbox-custom {
+            border-color: #64748b;
+        }
+        
+        html:not(.dark) .value-checkbox:checked + .checkbox-custom {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.1);
+            box-shadow: 0 0 4px rgba(59, 130, 246, 0.3);
+        }
+        
+        html:not(.dark) .value-checkbox:checked + .checkbox-custom .fa-check {
+            color: #3b82f6;
+        }
+        
+        html:not(.dark) .value-checkbox:checked ~ label {
+            color: #3b82f6;
+        }
+        
+        /* 视频背景和加载页面样式 */
+        .video-background {
+            z-index: -1;
+            pointer-events: none;
+        }
+        
+        #loadingScreen {
+            opacity: 1;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        #loadingScreen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* 加载动画 */
+        @keyframes ripple {
+            0% { transform: scale(0.8); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        
+        .ripple-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid var(--color-neon-blue);
+            animation: ripple 2s infinite ease-out;
+        }
+        
+        .ripple-bg:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+        
+        /* Home页面value标签样式 */
+        .value-labels-container {
+            position: relative;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 16px;
+        }
+        
+        .value-label {
+            padding: 8px 16px;
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(0, 243, 255, 0.3);
+            border-radius: 24px;
+            backdrop-filter: blur(4px);
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            transform-origin: center;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.1);
+            animation: floatLabel 5s ease-in-out infinite;
+            animation-delay: calc(var(--delay) * 1s);
+        }
+        
+        .value-label:hover {
+            background: rgba(0, 243, 255, 0.2);
+            border-color: rgba(0, 243, 255, 0.8);
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 243, 255, 0.3);
+        }
+        
+        @keyframes floatLabel {
+            0%, 100% { transform: translateY(0) rotate(calc(var(--rotation) * 1deg)); }
+            50% { transform: translateY(-10px) rotate(calc(var(--rotation) * 1deg)); }
+        }
+        
+        /* 自定义文本颜色 */
+        .neon-text-pink { color: var(--color-neon-pink); }
+        
+        /* 选择样式 */
+        .selected-value {
+            border-left: 3px solid var(--color-neon-blue);
+        }
+        
+        /* 动画 */
+        @keyframes glow {
+            0% { box-shadow: 0 0 5px var(--color-neon-blue), 0 0 10px var(--color-neon-blue); }
+            100% { box-shadow: 0 0 10px var(--color-neon-blue), 0 0 20px var(--color-neon-blue); }
+        }
+    </style>
+</head>
+<body class="cyber-grid text-gray-100 font-sans m-0 p-0 w-full overflow-x-hidden">
+    <!-- 数据库警告消息 -->
+    {% if db_warning %}
+    <div class="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white p-3 text-center font-semibold shadow-lg">
+        <i class="fas fa-exclamation-triangle mr-2"></i>{{ db_warning }}
+    </div>
+    {% endif %}
+    
+    <!-- 静态背景 -->
+    <div id="background-container" class="video-background fixed inset-0 z-0 overflow-hidden bg-cover bg-center" style="background-image: url('{{ url_for('static', filename='img/background.jpg') }}');">
+        <div class="absolute inset-0 w-full h-full bg-black/10 backdrop-blur-[10px]"></div>
+    </div>
+    
+    <!-- 现有背景效果，降低不透明度以便与视频融合 -->
+    <div class="circuit-lines opacity-20"></div>
+    
+    <!-- 加载屏幕 -->
+    <div id="loadingScreen" class="fixed inset-0 bg-slate-900 z-50 flex flex-col items-center justify-center">
+    <!-- 现有背景效果，降低不透明度以便与视频融合 -->
+    <div class="circuit-lines opacity-20"></div>
+    <div class="toast-container fixed top-4 right-4 z-50" id="toastContainer"></div>
+    
+    <div class="flex h-screen overflow-hidden cyber-box w-full m-0 p-0">
+        <!-- Sidebar -->
+        <aside class="fixed inset-y-0 left-0 z-40 w-64 transition-all duration-300 transform -translate-x-full lg:translate-x-0 lg:w-72" id="sidebar">
+            <div class="flex flex-col h-full frosted-dark neon-border">
+                <!-- Sidebar Header -->
+                <div class="flex items-center justify-between p-4 border-b border-indigo-900/30">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-14 h-14 overflow-hidden rounded-xl flex items-center justify-center shadow-blue-glow">
+                            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex items-center">
+                            <div class="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-lg shadow-blue-500/10">
+                                <p class="text-sm font-bold tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-blue-300 via-cyan-200 to-indigo-300 animate-pulse-slow">Value Probing</p>
+                            </div>
+                        </div>
+                    </div>
+                    <button id="closeSidebar" class="lg:hidden text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <!-- Navigation -->
+                <nav class="flex-1 py-6 overflow-y-auto">
+                    <ul class="space-y-1 px-3">
+                        <li class="nav-item">
+                            <a href="#" data-view="home" class="group flex items-center px-4 py-3 text-blue-100 rounded-xl transition-all duration-200 hover:bg-white/10 active-nav">
+                                <i class="fas fa-home w-5 h-5 mr-3 text-neon-blue"></i>
+                                <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" data-view="values" class="group flex items-center px-4 py-3 text-gray-400 rounded-xl transition-all duration-200 hover:bg-white/10">
+                                <i class="fas fa-list-check w-5 h-5 mr-3 text-indigo-400/70"></i>
+                                <span>Value Selection</span>
+                                <span class="ml-auto bg-blue-500/20 text-blue-200 text-xs font-medium px-2.5 py-0.5 rounded-full">Step 1</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" data-view="probes" class="group flex items-center px-4 py-3 text-gray-400 rounded-xl transition-all duration-200 hover:bg-white/10">
+                                <i class="fas fa-flask w-5 h-5 mr-3 text-indigo-400/70"></i>
+                                <span>Probe Generation</span>
+                                <span class="ml-auto bg-indigo-500/10 text-indigo-300/70 text-xs font-medium px-2.5 py-0.5 rounded-full">Step 2</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" data-view="responses" class="group flex items-center px-4 py-3 text-gray-400 rounded-xl transition-all duration-200 hover:bg-white/10">
+                                <i class="fas fa-reply-all w-5 h-5 mr-3 text-violet-400/70"></i>
+                                <span>Model Responses</span>
+                                <span class="ml-auto bg-violet-500/10 text-violet-300/70 text-xs font-medium px-2.5 py-0.5 rounded-full">Step 3</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" data-view="analysis" class="group flex items-center px-4 py-3 text-gray-400 rounded-xl transition-all duration-200 hover:bg-white/10">
+                                <i class="fas fa-chart-bar w-5 h-5 mr-3 text-green-400/70"></i>
+                                <span>Analysis</span>
+                                <span class="ml-auto bg-green-500/10 text-green-300/70 text-xs font-medium px-2.5 py-0.5 rounded-full">Step 4</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" data-view="visualization" class="group flex items-center px-4 py-3 text-gray-400 rounded-xl transition-all duration-200 hover:bg-white/10">
+                                <i class="fas fa-chart-line w-5 h-5 mr-3 text-sky-400/70"></i>
+                                <span>Visualization</span>
+                                <span class="ml-auto bg-sky-500/10 text-sky-300/70 text-xs font-medium px-2.5 py-0.5 rounded-full">Step 5</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" data-view="tasks" class="group flex items-center px-4 py-3 text-gray-400 rounded-xl transition-all duration-200 hover:bg-white/10">
+                                <i class="fas fa-history w-5 h-5 mr-3 text-amber-400/70"></i>
+                                <span>Task History</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" data-view="templates" class="group flex items-center px-4 py-3 text-gray-400 rounded-xl transition-all duration-200 hover:bg-white/10">
+                                <i class="fas fa-file-alt w-5 h-5 mr-3 text-teal-400/70"></i>
+                                <span>Judge Templates</span>
+                            </a>
+                        </li>
+                    </ul>
+                    
+                    <div class="mt-6 px-6">
+                        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider font-display">System</h3>
+                        <ul class="mt-3 space-y-1">
+                            <li>
+                                <a href="#" class="group flex items-center px-4 py-2 text-sm text-gray-400 rounded-lg transition-all duration-200 hover:bg-white/10">
+                                    <i class="fas fa-sliders-h w-5 h-5 mr-3 text-gray-400"></i>
+                                    <span>Settings</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#" class="group flex items-center px-4 py-2 text-sm text-gray-400 rounded-lg transition-all duration-200 hover:bg-white/10">
+                                    <i class="fas fa-question-circle w-5 h-5 mr-3 text-gray-400"></i>
+                                    <span>Help</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+                
+                <!-- System Status -->
+                <div class="p-4 border-t border-indigo-900/30">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse-slow"></div>
+                            <span class="text-xs font-medium text-gray-400">System Online</span>
+                        </div>
+                        <button class="text-gray-400 hover:text-white transition-colors" id="darkModeToggle">
+                            <span class="theme-switch-icon">
+                                <i class="fas fa-sun"></i>
+                                <i class="fas fa-moon"></i>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Mobile Sidebar Backdrop -->
+        <div class="fixed inset-0 z-[5] bg-black/50 lg:hidden hidden" id="sidebarBackdrop"></div>
+        
+        <!-- Main Content -->
+        <main class="flex-1 relative lg:ml-72 h-screen flex flex-col w-full">
+            <!-- Header -->
+            <header class="glass-dark border-b border-slate-700/30 z-10 w-full full-width">
+                <div class="flex items-center justify-between h-16 px-6">
+                    <div class="flex items-center">
+                        <button id="sidebarToggle" class="lg:hidden mr-4 text-gray-400 hover:text-white">
+                            <i class="fas fa-bars text-xl"></i>
+                        </button>
+                        <div class="flex items-center space-x-3 lg:hidden">
+                            <div class="w-10 h-10 overflow-hidden rounded-xl flex items-center justify-center shadow-blue-glow">
+                                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="w-full h-full object-cover">
+                            </div>
+                            <div class="flex items-center">
+                                <div class="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-lg shadow-blue-500/10">
+                                    <p class="text-sm font-bold tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-blue-300 via-cyan-200 to-indigo-300 animate-pulse-slow">Value Probing</p>
+                                </div>
+                            </div>
+                        </div>
+                        <h1 class="hidden lg:block text-xl font-semibold font-display">Value Probing</h1>
+                    </div>
+                    
+                    <!-- Progress Tracker -->
+                    <div class="hidden md:flex items-center">
+                        <div class="flex items-center">
+                            <div class="progress-step active" data-step="1">
+                                <div class="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white text-sm font-medium">1</div>
+                                <span class="mt-1 text-xs font-medium text-blue-400">Select</span>
+                            </div>
+                            
+                            <div class="w-12 h-0.5 bg-gray-700">
+                                <div class="h-full bg-blue-600 w-0 transition-all duration-300" id="connector1"></div>
+                            </div>
+                            
+                            <div class="progress-step" data-step="2">
+                                <div class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-gray-400 text-sm font-medium">2</div>
+                                <span class="mt-1 text-xs font-medium text-gray-500">Generate</span>
+                            </div>
+                            
+                            <div class="w-12 h-0.5 bg-gray-700">
+                                <div class="h-full bg-blue-600 w-0 transition-all duration-300" id="connector2"></div>
+                            </div>
+                            
+                            <div class="progress-step" data-step="3">
+                                <div class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-gray-400 text-sm font-medium">3</div>
+                                <span class="mt-1 text-xs font-medium text-gray-500">Respond</span>
+                            </div>
+                            
+                            <div class="w-12 h-0.5 bg-gray-700">
+                                <div class="h-full bg-blue-600 w-0 transition-all duration-300" id="connector3"></div>
+                            </div>
+                            
+                            <div class="progress-step" data-step="4">
+                                <div class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-gray-400 text-sm font-medium">4</div>
+                                <span class="mt-1 text-xs font-medium text-gray-500">Analyze</span>
+                            </div>
+                            
+                            <div class="w-12 h-0.5 bg-gray-700">
+                                <div class="h-full bg-blue-600 w-0 transition-all duration-300" id="connector4"></div>
+                            </div>
+                            
+                            <div class="progress-step" data-step="5">
+                                <div class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-gray-400 text-sm font-medium">5</div>
+                                <span class="mt-1 text-xs font-medium text-gray-500">Visualize</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="flex items-center space-x-4">
+                        <div class="relative">
+                            <button class="w-8 h-8 rounded-full bg-indigo-600/20 flex items-center justify-center text-indigo-400 hover:bg-indigo-600/30 transition-colors">
+                                <i class="fas fa-bell"></i>
+                            </button>
+                            <div class="absolute top-0 right-0 w-2 h-2 bg-blue-500 rounded-full"></div>
+                        </div>
+                        
+                        <div class="w-px h-6 bg-gray-700"></div>
+                        
+                        <button class="tech-button text-blue-400 px-3 py-1.5 rounded-lg text-sm">
+                            <i class="fas fa-download mr-1.5"></i>
+                            <span>Export</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-wrapper overflow-y-auto">
+                <!-- Home View -->
+                <div class="content-view active p-6 lg:p-8" id="home-view">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold flex items-center text-blue-100 font-display">
+                            <i class="fas fa-home mr-3 text-neon-blue"></i>
+                            <span class="neon-text-blue">Home</span>
+                        </h2>
+                        <p class="text-gray-400 mt-1">Welcome to Value Probing</p>
+                    </div>
+                    
+                    <div class="flex flex-col items-center justify-center min-h-[70vh] relative">
+                        <!-- 中央悬浮机器人图片 -->
+                        <div class="relative w-64 h-64 mb-8">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="w-64 h-64 rounded-full bg-blue-500/10 flex items-center justify-center animate-pulse-slow"></div>
+                            </div>
+                            <div class="relative z-10 w-64 h-64 floating">
+                                <img src="{{ url_for('static', filename='img/home.png') }}" alt="AI Robot" class="w-full h-full object-contain drop-shadow-[0_0_15px_rgba(0,243,255,0.5)]">
+                            </div>
+                            
+                            <!-- 发光效果 -->
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="ripple-bg"></div>
+                                <div class="ripple-bg"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Value 标签环绕效果 -->
+                        <div id="valueLabelsContainer" class="value-labels-container w-full max-w-4xl"></div>
+                    </div>
+                </div>
+                
+                <!-- Value Selection View -->
+                <div class="content-view p-6 lg:p-8" id="values-view">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold flex items-center text-blue-100 font-display">
+                            <i class="fas fa-list-check mr-3 text-neon-blue"></i>
+                            <span class="neon-text-blue">Value Dimension Selection</span>
+                        </h2>
+                        <p class="text-gray-400 mt-1">Choose value dimensions from established frameworks to evaluate</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 gap-6">
+                        <!-- Value Frameworks Panel -->
+                        <div>
+                            <div class="glass-dark rounded-xl overflow-hidden neon-border">
+                                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/30">
+                                    <h3 class="text-lg font-semibold text-blue-100 font-display">Value Frameworks</h3>
+                                    <div class="flex space-x-2">
+                                        <button class="select-all-btn px-3 py-1.5 text-xs font-medium rounded-lg text-blue-300 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors">
+                                            <i class="fas fa-check-double mr-1"></i> Select All
+                                        </button>
+                                        <button class="clear-btn px-3 py-1.5 text-xs font-medium rounded-lg text-gray-300 bg-gray-500/10 border border-gray-500/20 hover:bg-gray-500/20 transition-colors">
+                                            <i class="fas fa-times mr-1"></i> Clear
+                                        </button>
+                                        <button id="manageValuesBtn" class="px-3 py-1.5 text-xs font-medium rounded-lg text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">
+                                            <i class="fas fa-cog mr-1"></i> Manage
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-6 max-h-[70vh] overflow-y-auto">
+                                    <form id="valueSelectionForm">
+                                        {% for category, values in value_dimensions.items() %}
+                                        <div class="framework-category mb-6">
+                                            <div class="framework-header cursor-pointer flex items-center justify-between p-3 rounded-lg bg-slate-800/50 hover:bg-slate-800/80 border border-slate-700/50 transition-colors">
+                                                <h4 class="text-base font-medium text-blue-100 font-display">{{ category|replace('_', ' ')|title }}</h4>
+                                                <div class="framework-toggle">
+                                                    <i class="fas fa-chevron-down text-gray-400"></i>
+                                                </div>
+                                            </div>
+                                            <div class="framework-values mt-3 pl-3" style="display: block;">
+                                                <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                                    {% for value in values %}
+                                                    <div class="value-item group flex items-center p-2 rounded-lg hover:bg-slate-800/30 transition-colors">
+                                                        <div class="flex items-center flex-1">
+                                                            <div class="relative flex items-center">
+                                                                <input id="{{ value }}" value="{{ value }}" type="checkbox" class="value-checkbox absolute opacity-0 w-5 h-5 cursor-pointer">
+                                                                <div class="checkbox-custom w-5 h-5 border-2 border-gray-500 rounded flex items-center justify-center transition-all duration-200 cursor-pointer hover:border-neon-blue">
+                                                                    <i class="fas fa-check text-neon-blue opacity-0 transition-opacity duration-200 text-xs"></i>
+                                                                </div>
+                                                                <label for="{{ value }}" class="ml-3 text-sm font-medium text-gray-300 cursor-pointer transition-colors">
+                                                                    {{ value|replace('_', ' ')|title }}
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                        <div class="opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button type="button" class="info-tooltip w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:text-neon-blue hover:bg-blue-500/10 transition-colors" data-value="{{ value }}">
+                                                                <i class="fas fa-info-circle"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Probe Generation View -->
+                <div class="content-view p-6 lg:p-8" id="probes-view">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold flex items-center text-indigo-100 font-display">
+                            <i class="fas fa-flask mr-3 text-indigo-400"></i>
+                            <span class="neon-text-purple">Probe Generation</span>
+                        </h2>
+                        <p class="text-gray-400 mt-1">Review and customize generated probes for each value dimension</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 gap-6">
+                        <!-- Probe Configuration Panel -->
+                        <div>
+                            <div class="glass-dark rounded-xl neon-border">
+                                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/30">
+                                    <h3 class="text-lg font-semibold text-indigo-100 font-display">Probe Configuration</h3>
+                                </div>
+                                
+                                <div class="p-6">
+                                    <!-- Selected Values -->
+                                    <div class="mb-8">
+                                        <h4 class="text-sm font-semibold text-gray-400 mb-3 font-display">Selected Values</h4>
+                                        <div id="selectedValues" class="min-h-[80px] p-4 rounded-lg bg-slate-800/50 border border-slate-700/50">
+                                            <p class="empty-message text-gray-500 text-sm italic">No values selected</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Generation Settings -->
+                                    <div class="mb-8">
+                                        <h4 class="text-sm font-semibold text-gray-400 mb-3 font-display">Generation Settings</h4>
+                                        
+                                        <div class="mb-6">
+                                            <label for="numProbes" class="block text-sm font-medium text-gray-400 mb-2">Probes per value:</label>
+                                            <div class="flex items-center space-x-4">
+                                                <input type="range" id="numProbesRange" min="1" max="30" value="5" step="1" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                                                <div class="relative">
+                                                    <input type="number" id="numProbes" value="5" min="1" max="30" class="w-16 text-center py-1.5 px-3 text-gray-200 bg-slate-800 border border-slate-700 rounded-lg focus:ring-1 focus:ring-neon-blue focus:border-neon-blue">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-6">
+                                            <label for="probeModel" class="block text-sm font-medium text-gray-400 mb-2">Generation Model:</label>
+                                            <select id="probeModel" class="w-full px-4 py-2 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-neon-blue">
+                                                {% for model in openai_models %}
+                                                <option value="{{ model }}">{{ model }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-400 mb-2">
+                                                Probe diversity:
+                                                <span class="info-tooltip ml-1 text-gray-500 cursor-help" title="Controls the variation in generated questions. Low: More focused, similar questions. Medium: Balanced diversity. High: More varied, creative questions. Affects model temperature setting.">
+                                                    <i class="fas fa-question-circle"></i>
+                                                </span>
+                                            </label>
+                                            <div class="grid grid-cols-3 gap-2">
+                                                <div>
+                                                    <input type="radio" id="diversity-low" name="diversity" class="peer sr-only" checked>
+                                                    <label for="diversity-low" class="flex justify-center items-center py-2 px-3 text-xs font-medium rounded-lg text-gray-400 bg-gray-800/50 border border-gray-700 cursor-pointer peer-checked:bg-blue-900/20 peer-checked:border-neon-blue peer-checked:text-neon-blue">
+                                                        Low
+                                                    </label>
+                                                </div>
+                                                <div>
+                                                    <input type="radio" id="diversity-medium" name="diversity" class="peer sr-only">
+                                                    <label for="diversity-medium" class="flex justify-center items-center py-2 px-3 text-xs font-medium rounded-lg text-gray-400 bg-gray-800/50 border border-gray-700 cursor-pointer peer-checked:bg-blue-900/20 peer-checked:border-neon-blue peer-checked:text-neon-blue">
+                                                        Medium
+                                                    </label>
+                                                </div>
+                                                <div>
+                                                    <input type="radio" id="diversity-high" name="diversity" class="peer sr-only">
+                                                    <label for="diversity-high" class="flex justify-center items-center py-2 px-3 text-xs font-medium rounded-lg text-gray-400 bg-gray-800/50 border border-gray-700 cursor-pointer peer-checked:bg-blue-900/20 peer-checked:border-neon-blue peer-checked:text-neon-blue">
+                                                        High
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Topic Constraints -->
+                                    <div class="mb-8">
+                                        <h4 class="text-sm font-semibold text-gray-400 mb-3 font-display">Topic Constraints (Optional)</h4>
+                                        <div class="mb-4">
+                                            <label for="probeConstraints" class="block text-sm font-medium text-gray-400 mb-2">
+                                                Add specific topics or constraints:
+                                                <span class="info-tooltip ml-1 text-gray-500 cursor-help" title="Specify topics or constraints to focus the generated probes. For example: 'about healthcare', 'in the context of education', 'related to technology ethics'.">
+                                                    <i class="fas fa-question-circle"></i>
+                                                </span>
+                                            </label>
+                                            <textarea id="probeConstraints" rows="2" placeholder="e.g., 'Generate probes related to healthcare ethics' or 'Focus on educational contexts'" class="w-full px-4 py-3 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-neon-blue resize-none"></textarea>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Question Format Settings -->
+                                    <div class="mb-8">
+                                        <h4 class="text-sm font-semibold text-gray-400 mb-3 font-display">Question Format</h4>
+                                        <div class="space-y-3">
+                                            <div class="flex items-center">
+                                                <input type="checkbox" id="format-open-ended" name="question-format" class="question-format-checkbox value-checkbox absolute opacity-0 w-5 h-5 cursor-pointer" checked>
+                                                <div class="checkbox-custom w-5 h-5 border-2 border-gray-500 rounded flex items-center justify-center transition-all duration-200 cursor-pointer hover:border-neon-blue">
+                                                    <i class="fas fa-check text-neon-blue opacity-0 transition-opacity duration-200 text-xs"></i>
+                                                </div>
+                                                <label for="format-open-ended" class="ml-3 text-sm font-medium text-gray-300 cursor-pointer transition-colors">
+                                                    Open-Ended Questions
+                                                </label>
+                                            </div>
+                                            
+                                            <div class="flex items-center">
+                                                <input type="checkbox" id="format-multiple-choice" name="question-format" class="question-format-checkbox value-checkbox absolute opacity-0 w-5 h-5 cursor-pointer">
+                                                <div class="checkbox-custom w-5 h-5 border-2 border-gray-500 rounded flex items-center justify-center transition-all duration-200 cursor-pointer hover:border-neon-blue">
+                                                    <i class="fas fa-check text-neon-blue opacity-0 transition-opacity duration-200 text-xs"></i>
+                                                </div>
+                                                <label for="format-multiple-choice" class="ml-3 text-sm font-medium text-gray-300 cursor-pointer transition-colors">
+                                                    Multiple-Choice Questions
+                                                </label>
+                                                <span class="ml-4 text-xs text-gray-400">(2 options)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Validation Methods -->
+                                    <div class="mb-8">
+                                        <h4 class="text-sm font-semibold text-gray-400 mb-3 font-display">Validation Methods</h4>
+                                        <div class="space-y-3">
+                                            <!-- Parallel Forms Reliability -->
+                                            <div class="p-3 rounded-lg border border-slate-700/50 bg-slate-800/30 hover:bg-slate-800/50 transition-colors">
+                                                <div class="flex items-start">
+                                                    <div class="flex h-5 items-center">
+                                                        <input id="validation-parallel-forms" type="checkbox" class="validation-method w-4 h-4 rounded border-gray-600 bg-gray-700 focus:ring-blue-500 focus:ring-2" value="parallel_forms">
+                                                    </div>
+                                                    <div class="ml-3 text-sm">
+                                                        <label for="validation-parallel-forms" class="font-medium text-blue-300">Parallel Forms Reliability</label>
+                                                        <p class="text-gray-400 text-xs mt-1">Generate multiple paraphrased versions of each probe to measure consistency across equivalent question forms.</p>
+                                                        <div class="mt-2" id="parallel-forms-options">
+                                                            <label class="block text-xs font-medium text-gray-400 mb-1">Number of variations:</label>
+                                                            <input type="number" id="parallel-forms-count" value="3" min="2" max="5" class="w-16 text-center py-1 px-2 text-gray-200 bg-slate-800 border border-slate-700 rounded-lg focus:ring-1 focus:ring-neon-blue focus:border-neon-blue text-xs">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Adversarial Attack Robustness -->
+                                            <div class="p-3 rounded-lg border border-slate-700/50 bg-slate-800/30 hover:bg-slate-800/50 transition-colors">
+                                                <div class="flex items-start">
+                                                    <div class="flex h-5 items-center">
+                                                        <input id="validation-adversarial" type="checkbox" class="validation-method w-4 h-4 rounded border-gray-600 bg-gray-700 focus:ring-blue-500 focus:ring-2" value="adversarial_attack">
+                                                    </div>
+                                                    <div class="ml-3 text-sm">
+                                                        <label for="validation-adversarial" class="font-medium text-blue-300">Adversarial Attack Robustness</label>
+                                                        <p class="text-gray-400 text-xs mt-1">Generate adversarial versions of each probe that attempt to manipulate the model's response, to test resistance to deliberate manipulation.</p>
+                                                        <div class="mt-2" id="adversarial-options">
+                                                            <div class="flex flex-col space-y-2">
+                                                                <div>
+                                                                    <label class="block text-xs font-medium text-gray-400 mb-1">Persuasion techniques:</label>
+                                                                    <select id="adversarial-technique" class="w-full px-3 py-1.5 text-xs text-gray-200 bg-slate-800 border border-slate-700 rounded-lg focus:ring-1 focus:ring-neon-blue focus:border-neon-blue">
+                                                                        <option value="social_proof">Social Proof</option>
+                                                                        <option value="scarcity">Scarcity</option>
+                                                                        <option value="authority">Authority</option>
+                                                                        <option value="reciprocity">Reciprocity</option>
+                                                                        <option value="commitment">Commitment</option>
+                                                                    </select>
+                                                                </div>
+                                                                <div>
+                                                                    <label class="block text-xs font-medium text-gray-400 mb-1">Number of adversarial versions:</label>
+                                                                    <input type="number" id="adversarial-count" value="1" min="1" max="5" class="w-16 text-center py-1 px-2 text-gray-200 bg-slate-800 border border-slate-700 rounded-lg focus:ring-1 focus:ring-neon-blue focus:border-neon-blue text-xs">
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Option Position Bias -->
+                                            <div class="p-3 rounded-lg border border-slate-700/50 bg-slate-800/30 hover:bg-slate-800/50 transition-colors">
+                                                <div class="flex items-start">
+                                                    <div class="flex h-5 items-center">
+                                                        <input id="validation-position-bias" type="checkbox" class="validation-method w-4 h-4 rounded border-gray-600 bg-gray-700 focus:ring-blue-500 focus:ring-2" value="position_bias" disabled>
+                                                    </div>
+                                                    <div class="ml-3 text-sm">
+                                                        <label for="validation-position-bias" class="font-medium text-blue-300">Option Position Bias</label>
+                                                        <p class="text-gray-400 text-xs mt-1">Randomize the order of answer choices in multiple-choice questions to test if responses are influenced by option placement. <span class="text-yellow-300">Only available for multiple-choice questions.</span></p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Placeholder for other validation methods -->
+                                            <div class="p-3 rounded-lg border border-slate-700/50 bg-slate-800/30 opacity-50">
+                                                <div class="flex items-start">
+                                                    <div class="flex h-5 items-center">
+                                                        <input id="validation-coming-soon" type="checkbox" disabled class="w-4 h-4 rounded border-gray-600 bg-gray-700" value="coming_soon">
+                                                    </div>
+                                                    <div class="ml-3 text-sm">
+                                                        <label for="validation-coming-soon" class="font-medium text-gray-300">More validation methods coming soon</label>
+                                                        <p class="text-gray-400 text-xs mt-1">Additional validation methods will be available in future updates.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Value Description -->
+                                    <div id="valueDescription" class="p-4 rounded-lg bg-blue-900/10 border border-blue-800/20 mb-6 hidden">
+                                        <h4 class="text-sm font-semibold text-blue-300 mb-2 font-display" id="valueDescTitle">Value Description</h4>
+                                        <p class="text-sm text-gray-300" id="valueDescText"></p>
+                                    </div>
+                                    
+                                    <!-- API configuration check notification -->
+                                    <div class="p-4 rounded-lg bg-yellow-900/20 border border-yellow-800/30 mb-6">
+                                        <div class="flex items-start">
+                                            <i class="fas fa-exclamation-triangle text-yellow-400 mt-1 mr-2"></i>
+                                            <div>
+                                                <h4 class="text-sm font-semibold text-yellow-300 mb-1 font-display">API Configuration Required</h4>
+                                                <p class="text-sm text-gray-300">Before generating probes, please ensure you have configured API keys for your selected model in Settings. Missing API keys will result in generation failure.</p>
+                                                <a href="#" id="checkApiConfigBtn" class="mt-2 inline-block px-3 py-1 text-xs font-medium rounded-lg text-yellow-300 bg-yellow-500/10 border border-yellow-500/20 hover:bg-yellow-500/20 transition-colors">
+                                                    <i class="fas fa-key mr-1"></i> Check API Configuration
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Action Buttons -->
+                                    <div class="flex justify-end">
+                                        <button type="button" id="uploadProbesBtn" class="tech-button px-5 py-2.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-medium text-sm hover:from-indigo-600 hover:to-purple-700 transition-all transform hover:-translate-y-0.5 shadow-lg shadow-indigo-700/20">
+                                            <i class="fas fa-upload mr-2"></i> Upload Custom Probes
+                                        </button>
+                                        <button type="button" id="generateProbesBtn" class="tech-button px-5 py-2.5 rounded-lg bg-gradient-to-r from-neon-blue to-blue-600 text-white font-medium text-sm hover:from-blue-600 hover:to-neon-blue transition-all transform hover:-translate-y-0.5 shadow-lg shadow-blue-700/20">
+                                            <i class="fas fa-flask mr-2"></i> Generate Probes
+                                        </button>
+                                    </div>
+
+                                    <input type="file" id="uploadProbesInput" class="hidden" accept=".json">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Generated Probes Panel -->
+                        <div class="glass-dark rounded-xl overflow-hidden neon-border">
+                            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/30">
+                                <h3 class="text-lg font-semibold text-indigo-100 font-display">Generated Probes</h3>
+                                <div class="flex space-x-2">
+                                    <button id="regenerateBtn" class="px-3 py-1.5 text-xs font-medium rounded-lg text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 transition-colors">
+                                        <i class="fas fa-redo mr-1"></i> Regenerate
+                                    </button>
+                                    <button id="exportProbesBtn" class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-300 bg-gray-500/10 border border-gray-500/20 hover:bg-gray-500/20 transition-colors">
+                                        <i class="fas fa-file-export mr-1"></i> Export
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="p-6">
+                                <div id="probesList" class="probes-list bg-slate-800/40 rounded-xl p-6 border border-slate-700/30">
+                                    <div class="flex flex-col items-center justify-center h-40 text-gray-400">
+                                        <p class="text-center">Select values and generate probes to view them here.</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-end mt-6">
+                                    <button type="button" id="nextToResponsesBtn" class="tech-button px-5 py-2.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-medium text-sm hover:from-indigo-700 hover:to-violet-700 transition-all transform hover:-translate-y-0.5 shadow-lg shadow-indigo-700/20 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                        <i class="fas fa-arrow-right mr-2"></i> Proceed to Responses
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Model Responses View -->
+                <div class="content-view p-6 lg:p-8" id="responses-view">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold flex items-center text-violet-100 font-display">
+                            <i class="fas fa-reply-all mr-3 text-violet-400"></i>
+                            <span class="neon-text-purple">Model Responses</span>
+                        </h2>
+                        <p class="text-gray-400 mt-1">Generate API model responses to your probe questions or submit previously collected responses</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 gap-6">
+                        <!-- Response Generation Panel -->
+                        <div class="glass-dark rounded-xl overflow-hidden neon-border">
+                            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/30">
+                                <h3 class="text-lg font-semibold text-violet-100 font-display">Response Generation</h3>
+                                <div class="flex space-x-2">
+                                    <button id="generateResponsesBtn" class="px-3 py-1.5 text-xs font-medium rounded-lg text-violet-300 bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 transition-colors">
+                                        <i class="fas fa-robot mr-1"></i> Generate
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="p-6">
+                                <div class="mb-6">
+                                    <label class="block text-sm font-medium text-gray-400 mb-2">Generation Method:</label>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <input type="radio" id="generationApi" name="generationType" class="peer sr-only" checked>
+                                            <label for="generationApi" class="flex justify-center items-center py-2 px-3 text-sm font-medium rounded-lg text-gray-400 bg-gray-800/50 border border-gray-700 cursor-pointer peer-checked:bg-violet-900/20 peer-checked:border-violet-700 peer-checked:text-violet-400 w-full">
+                                                <i class="fas fa-cloud mr-2"></i> API
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <input type="radio" id="generationLocal" name="generationType" class="peer sr-only" disabled>
+                                            <label for="generationLocal" class="flex justify-center items-center py-2 px-3 text-sm font-medium rounded-lg text-gray-500 bg-gray-800/30 border border-gray-700 cursor-not-allowed opacity-60 w-full">
+                                                <i class="fas fa-laptop-code mr-2"></i> Local Model
+                                                <span class="ml-1 text-xs">(Coming soon)</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- API Settings (shown by default) -->
+                                <div id="apiSettings" class="mb-6">
+                                    <div class="mb-4">
+                                        <label for="apiModel" class="block text-sm font-medium text-gray-400 mb-2">Model:</label>
+                                        <select id="apiModel" class="w-full px-4 py-2 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-violet-500">
+                                            {% for model in openai_models %}
+                                            <option value="{{ model }}">{{ model }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label for="apiTemperature" class="block text-sm font-medium text-gray-400 mb-2">Temperature: <span id="tempValue">0.7</span></label>
+                                        <input type="range" id="apiTemperature" min="0" max="1" step="0.1" value="0.7" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                                    </div>
+                                </div>
+                                
+                                <!-- Select Probe Generation Section -->
+                                <div class="mb-6">
+                                    <label for="probeGenerationSelect" class="block text-sm font-medium text-gray-400 mb-2">Select Probe Generation:</label>
+                                    <div class="p-4 rounded-lg bg-slate-800/50 border border-slate-700/30 mb-3">
+                                        <div id="selectedProbeGenerationInfo" class="text-sm text-gray-400">
+                                            No probe generation selected. Please select one from Task History or generate new probes.
+                                        </div>
+                                    </div>
+                                    <button id="selectProbeGenerationBtn" class="w-full px-3 py-2 text-sm font-medium rounded-lg text-violet-300 bg-violet-500/10 border border-violet-500/20 hover:bg-violet-500/20 transition-colors">
+                                        <i class="fas fa-tasks mr-2"></i> Select from Task History
+                                    </button>
+                                </div>
+                                
+                                <!-- Local Model Settings (hidden by default) -->
+                                <div id="localModelSettings" class="mb-6 hidden">
+                                    <div class="p-4 rounded-lg bg-slate-800/50 border border-slate-700/30">
+                                        <div class="flex items-start">
+                                            <i class="fas fa-info-circle text-violet-400 mt-1 mr-2"></i>
+                                            <p class="text-sm text-gray-300">Local model support is currently in development. This feature will allow you to run models locally for generating responses.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="frosted-dark rounded-lg p-4 mb-6">
+                                    <h4 class="text-sm font-semibold text-violet-300 mb-2 font-display">Generation Status</h4>
+                                    <div id="generationStatus" class="text-sm text-gray-300">
+                                        <p>Ready to generate responses for your probe questions using API models.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Response Input Panel -->
+                        <div>
+                            <div class="glass-dark rounded-xl overflow-hidden h-full neon-border">
+                                <div class="px-6 py-4 border-b border-slate-700/30">
+                                    <h3 class="text-lg font-semibold text-violet-100 font-display">Response Results</h3>
+                                </div>
+                                <div class="p-6">
+                                    <div id="responseResultInfo" class="text-gray-400">
+                                        <p>After generating responses, a confirmation will appear here.</p>
+                                    </div>
+                                    <input type="hidden" id="probeGenerationId" value="">
+                                    <input type="hidden" id="taskId" value="">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end mt-6">
+                        <button type="button" id="goToAnalysisBtn" class="tech-button px-5 py-2.5 rounded-lg bg-gradient-to-r from-violet-600 to-green-600 text-white font-medium text-sm hover:from-violet-700 hover:to-green-700 transition-all transform hover:-translate-y-0.5 shadow-lg shadow-violet-700/20 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <i class="fas fa-chart-bar mr-2"></i> Proceed to Analysis
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Analysis View (New) -->
+                <div class="content-view p-6 lg:p-8" id="analysis-view">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold flex items-center text-green-100 font-display">
+                            <i class="fas fa-chart-bar mr-3 text-green-400"></i>
+                            <span class="neon-text-blue">Response Analysis</span>
+                        </h2>
+                        <p class="text-gray-400 mt-1">Analyze model responses with metrics or LLM Judge</p>
+                    </div>
+                    
+                    <div class="glass-dark rounded-xl overflow-hidden neon-border">
+                        <div class="px-6 py-4 border-b border-slate-700/30">
+                            <h3 class="text-lg font-semibold text-green-100 font-display">Analysis Settings</h3>
+                        </div>
+                        
+                        <div class="p-8">
+                            <div class="space-y-6">
+                                <div>
+                                    <h4 class="text-md font-semibold text-gray-200 mb-3">1. Select Model Response to Analyze</h4>
+                                    <div class="relative">
+                                        <select id="modelResponseSelect" class="enhanced-select w-full">
+                                            <option value="">Loading responses...</option>
+                                        </select>
+                                    </div>
+                                    <div id="selectedModelResponseInfo" class="mt-3 text-xs text-gray-400 bg-slate-800/50 p-3 rounded-lg border border-slate-700/50 hidden">
+                                        <!-- Selected response info will be shown here -->
+                                    </div>
+                                    <input type="hidden" id="modelResponseId" value="">
+                                </div>
+
+                                <div>
+                                    <h4 class="text-md font-semibold text-gray-200 mb-3">2. Select Analysis Method</h4>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <input type="radio" id="analysisJudge" name="analysisType" class="peer sr-only" value="judge" checked>
+                                            <label for="analysisJudge" class="flex justify-center items-center py-3 px-3 text-sm font-medium rounded-lg text-gray-400 bg-slate-800/50 border border-slate-700/60 cursor-pointer peer-checked:bg-green-900/30 peer-checked:border-green-500/50 peer-checked:text-green-300 w-full transition-all">
+                                                <i class="fas fa-gavel mr-2"></i> LLM Judge
+                                            </label>
+                                        </div>
+                                        <div>
+                                            <input type="radio" id="analysisHuman" name="analysisType" class="peer sr-only" value="human">
+                                            <label for="analysisHuman" class="flex justify-center items-center py-3 px-3 text-sm font-medium rounded-lg text-gray-400 bg-slate-800/50 border border-slate-700/60 cursor-pointer peer-checked:bg-green-900/30 peer-checked:border-green-500/50 peer-checked:text-green-300 w-full transition-all">
+                                                <i class="fas fa-user-check mr-2"></i> Human Evaluation
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div id="judgeSettings" class="hidden space-y-4">
+                                    <h4 class="text-md font-semibold text-gray-200 mb-1">3. Configure LLM Judge</h4>
+                                    <div class="grid grid-cols-1 gap-4 p-4 bg-slate-800/20 rounded-lg border border-slate-700/50">
+                                        <div>
+                                            <label for="judgeModel" class="block text-sm font-medium text-gray-400 mb-2">Judge Model:</label>
+                                            <div class="relative">
+                                                <select id="judgeModel" class="enhanced-select w-full">
+                                                    {% for model in openai_models %}
+                                                    <option value="{{ model }}">{{ model }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <p class="mt-2 text-xs text-gray-400">The judge will use this model to analyze responses.</p>
+                                        </div>
+                                        
+                                        <div>
+                                            <label for="judgeTemplate" class="block text-sm font-medium text-gray-400 mb-2">Judge Template:</label>
+                                            <div class="relative">
+                                                <select id="judgeTemplate" class="enhanced-select w-full">
+                                                    {% for template in judge_templates %}
+                                                    <option value="{{ template.id }}" {% if template.is_default %}selected{% endif %}>{{ template.name }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <p class="mt-2 text-xs text-gray-400">Select the template for LLM Judge evaluation.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="humanSettings" class="hidden space-y-4">
+                                    <h4 class="text-md font-semibold text-gray-200 mb-1">3. Configure Human Evaluation</h4>
+                                    <div class="grid grid-cols-1 gap-4 p-4 bg-slate-800/20 rounded-lg border border-slate-700/50">
+                                        
+                                        <div class="hidden">
+                                            <label for="likertScale" class="block text-sm font-medium text-gray-400 mb-2">Likert Scale:</label>
+                                            </div>
+
+                                        <div class="bg-blue-900/10 border border-blue-800/20 p-3 rounded-lg">
+                                            <p class="text-sm text-blue-300"><i class="fas fa-info-circle mr-2"></i>You will score each response on a simple 1-5 scale based on its alignment with the specified value. The system will automatically handle averaging and normalization.</p>
+                                        </div>
+                                        
+                                        <div>
+                                            <label for="likertScale" class="block text-sm font-medium text-gray-400 mb-2">Evaluation Scale:</label>
+                                            <div class="flex items-center space-x-2">
+                                                <select id="likertScale" class="enhanced-select w-full">
+                                                    </select>
+                                                <button id="createScaleBtn" title="Create New Scale" class="tech-button px-3 py-2 rounded-lg text-sm text-green-300 bg-green-500/10 hover:bg-green-500/20"><i class="fas fa-plus"></i></button>
+                                                <button id="editScaleBtn" title="Edit Selected Scale" class="tech-button px-3 py-2 rounded-lg text-sm text-yellow-300 bg-yellow-500/10 hover:bg-yellow-500/20"><i class="fas fa-edit"></i></button>
+                                            </div>
+                                            <p class="mt-2 text-xs text-gray-400">Select the scale to use for evaluation. You can create custom scales with multiple metrics.</p>
+                                        </div>
+
+                                        <div>
+                                            <label for="evaluatorId" class="block text-sm font-medium text-gray-400 mb-2">Evaluator Name/ID (optional):</label>
+                                            <div class="relative">
+                                                <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                                </svg>
+                                                <input type="text" id="evaluatorId" placeholder="Your name or identifier" class="enhanced-input w-full">
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <label for="batchLabel" class="block text-sm font-medium text-gray-400 mb-2">Batch Label (optional):</label>
+                                            <div class="relative">
+                                                <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                                                </svg>
+                                                <input type="text" id="batchLabel" placeholder="e.g., Initial Evaluation, Round 2, etc." class="enhanced-input w-full">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="frosted-dark rounded-lg p-4">
+                                    <h4 class="text-sm font-semibold text-green-300 mb-2 font-display">Analysis Status</h4>
+                                    <div id="analysisStatus" class="text-sm text-gray-300">
+                                        <p>Ready to analyze responses.</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex justify-end">
+                                    <button type="button" id="evaluateBtn" class="tech-button px-5 py-2.5 rounded-lg bg-gradient-to-r from-green-600 to-sky-600 text-white font-medium text-sm hover:from-green-700 hover:to-sky-700 transition-all transform hover:-translate-y-0.5 shadow-lg shadow-green-700/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                                        <i class="fas fa-chart-line mr-2"></i> Analyze Responses
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Basic Results Preview -->
+                    <div id="analysisResultsPreview" class="glass-dark rounded-xl overflow-hidden mt-6 neon-border hidden">
+                        <div class="px-6 py-4 border-b border-slate-700/30">
+                            <h3 class="text-lg font-semibold text-green-100 font-display">Analysis Results Preview</h3>
+                        </div>
+
+                        <div class="p-6">
+                            <div id="previewMetricsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                                </div>
+
+                            <div class="flex justify-center">
+                                <button type="button" id="goToVisualizationBtn" class="tech-button px-5 py-2.5 rounded-lg bg-gradient-to-r from-green-600 to-sky-600 text-white font-medium text-sm hover:from-green-700 hover:to-sky-700 transition-all transform hover:-translate-y-0.5 shadow-lg shadow-green-700/20">
+                                    <i class="fas fa-chart-line mr-2"></i> View Full Visualizations
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visualization View (Renamed from Analysis View) -->
+                <div class="content-view p-6 lg:p-8" id="visualization-view">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold flex items-center text-sky-100 font-display">
+                            <i class="fas fa-chart-line mr-3 text-sky-400"></i>
+                            <span class="neon-text-blue">Visualizations</span>
+                        </h2>
+                        <p class="text-gray-400 mt-1">Comprehensive visualizations of value alignment and analysis results</p>
+                    </div>
+                    
+                    <!-- Results Placeholder -->
+                    <div id="resultsPlaceholder" class="glass-dark rounded-xl p-12 flex flex-col items-center justify-center neon-border">
+                        <div class="text-center">
+                            <i class="fas fa-chart-pie text-4xl text-gray-500 mb-4"></i>
+                            <p class="text-gray-400">Visualizations will appear here after analysis.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Results Container -->
+                    <div id="results" class="hidden">
+                        <div class="glass-dark rounded-xl overflow-hidden mb-6 neon-border">
+                            <div class="flex flex-wrap items-center justify-between px-6 py-4 border-b border-slate-700/30">
+                                <div class="flex-1">
+                                    <ul class="flex flex-wrap -mb-px text-sm font-medium text-center font-display" role="tablist">
+                                        <li class="mr-2" role="presentation">
+                                            <button class="inline-block p-4 border-b-2 border-neon-blue text-neon-blue rounded-t-lg active" id="dashboard-tab" data-tabs-target="#dashboard" type="button" role="tab" aria-controls="dashboard" aria-selected="true">
+                                                <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="flex space-x-2 mt-2 sm:mt-0">
+                                    <button id="exportResultsBtn" class="px-3 py-1.5 text-xs font-medium rounded-lg text-sky-300 bg-sky-500/10 border border-sky-500/20 hover:bg-sky-500/20 transition-colors">
+                                        <i class="fas fa-file-export mr-1"></i> Export Results
+                                    </button>
+                                    <button id="printResultsBtn" class="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-300 bg-gray-500/10 border border-gray-500/20 hover:bg-gray-500/20 transition-colors">
+                                        <i class="fas fa-print mr-1"></i> Print
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="tab-content">
+                                <!-- Dashboard Tab -->
+                                <div class="p-6 tab-pane active" id="dashboard" role="tabpanel" aria-labelledby="dashboard-tab">
+                                    <div id="dashboardMetricsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                                        </div>
+
+                                    <div class="frosted-card rounded-xl p-4 h-[500px]">
+                                        <div id="dashboardVisualization" class="w-full h-full"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Comparison Tab -->
+                                <!-- <div class="p-6 hidden tab-pane" id="comparison" role="tabpanel" aria-labelledby="comparison-tab">
+                                    <div class="frosted-card rounded-xl p-4 h-[600px]">
+                                        <div id="comparisonVisualization" class="w-full h-full"></div>
+                                    </div>
+                                </div> -->
+                                
+                                <!-- Heatmap Tab -->
+                                <!-- <div class="p-6 hidden tab-pane" id="heatmap" role="tabpanel" aria-labelledby="heatmap-tab">
+                                    <div class="frosted-card rounded-xl p-4 h-[600px]">
+                                        <div id="heatmapVisualization" class="w-full h-full"></div>
+                                    </div>
+                                </div> -->
+                                
+                                <!-- Detailed Metrics Tab -->
+                                <!-- <div class="p-6 hidden tab-pane" id="metrics" role="tabpanel" aria-labelledby="metrics-tab">
+                                    <div class="glass-dark rounded-xl overflow-hidden mb-6">
+                                        <div id="metricsTable" class="overflow-x-auto"></div>
+                                    </div>
+                                    
+                                    <div id="radarCharts" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                                </div> -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Task History View -->
+                <div class="content-view p-6 lg:p-8" id="tasks-view">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold flex items-center text-amber-100 font-display">
+                            <i class="fas fa-history mr-3 text-amber-400"></i>
+                            <span class="neon-text-blue">Task History</span>
+                        </h2>
+                        <p class="text-gray-400 mt-1">View and manage your task history and results</p>
+                    </div>
+                    
+                    <div class="glass-dark rounded-xl overflow-hidden neon-border">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/30">
+                            <h3 class="text-lg font-semibold text-amber-100 font-display">Tasks</h3>
+                        </div>
+                        
+                        <div class="p-6">
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left text-gray-300">
+                                    <thead class="text-xs text-gray-400 uppercase bg-slate-800/50">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3">ID</th>
+                                            <th scope="col" class="px-6 py-3">Name</th>
+                                            <th scope="col" class="px-6 py-3">Status</th>
+                                            <th scope="col" class="px-6 py-3">Created</th>
+                                            <th scope="col" class="px-6 py-3">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="taskTable">
+                                        {% if tasks %}
+                                            {% for task in tasks %}
+                                            <tr class="border-b border-gray-700 hover:bg-slate-800/30">
+                                                <td class="px-6 py-4">{{ task.id }}</td>
+                                                <td class="px-6 py-4">{{ task.name }}</td>
+                                                <td class="px-6 py-4">
+                                                    <span class="px-2 py-1 rounded-full text-xs 
+                                                        {% if task.status == 'completed' %}bg-green-900/30 text-green-400
+                                                        {% elif task.status == 'failed' %}bg-red-900/30 text-red-400
+                                                        {% elif task.status == 'running' %}bg-blue-900/30 text-blue-400
+                                                        {% else %}bg-gray-800 text-gray-400{% endif %}">
+                                                        {{ task.status }}
+                                                    </span>
+                                                </td>
+                                                <td class="px-6 py-4">{{ task.created_at }}</td>
+                                                <td class="px-6 py-4">
+                                                    <div class="flex space-x-2">
+                                                        <button class="task-details-btn px-2 py-1 text-xs rounded-lg bg-blue-900/20 text-blue-400 hover:bg-blue-900/40" data-task-id="{{ task.id }}">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        <button class="task-delete-btn px-2 py-1 text-xs rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40" data-task-id="{{ task.id }}">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr class="border-b border-gray-700">
+                                                <td colspan="5" class="px-6 py-4 text-center text-gray-400">No tasks found</td>
+                                            </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass-dark rounded-xl overflow-hidden neon-border mt-6">
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/30">
+                            <h3 class="text-lg font-semibold text-amber-100 font-display">Task Details</h3>
+                        </div>
+                        
+                        <div class="p-6" id="taskDetails">
+                            <div class="text-center text-gray-400">
+                                <p>Select a task to view details</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Judge Templates View -->
+                <div class="content-view p-6 lg:p-8" id="templates-view">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold flex items-center text-teal-100 font-display">
+                            <i class="fas fa-file-alt mr-3 text-teal-400"></i>
+                            <span class="neon-text-blue">Judge Templates</span>
+                        </h2>
+                        <p class="text-gray-400 mt-1">Manage custom templates for LLM Judge evaluation</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-1">
+                            <div class="glass-dark rounded-xl overflow-hidden h-full neon-border">
+                                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/30">
+                                    <h3 class="text-lg font-semibold text-teal-100 font-display">Templates</h3>
+                                    <div class="flex space-x-2">
+                                        <button id="createTemplateBtn" class="px-3 py-1.5 text-xs font-medium rounded-lg text-teal-300 bg-teal-500/10 border border-teal-500/20 hover:bg-teal-500/20 transition-colors">
+                                            <i class="fas fa-plus mr-1"></i> New
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-4 max-h-[600px] overflow-y-auto">
+                                    <ul class="space-y-2" id="templateList">
+                                        {% if judge_templates %}
+                                            {% for template in judge_templates %}
+                                            <li class="template-item p-3 rounded-lg border border-slate-700/50 hover:bg-slate-800/30 cursor-pointer {% if template.is_default %}border-teal-500/30 bg-teal-900/10{% endif %}" data-template-id="{{ template.id }}">
+                                                <div class="flex justify-between items-center">
+                                                    <div>
+                                                        <h4 class="font-medium text-teal-300">{{ template.name }}</h4>
+                                                        <p class="text-xs text-gray-400 mt-1">{{ template.description }}</p>
+                                                    </div>
+                                                    {% if template.is_default %}
+                                                    <span class="px-2 py-0.5 bg-teal-900/30 text-teal-400 text-xs rounded-full">Default</span>
+                                                    {% endif %}
+                                                </div>
+                                            </li>
+                                            {% endfor %}
+                                        {% else %}
+                                            <li class="text-center text-gray-400 py-4">
+                                                <p>No templates found</p>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="lg:col-span-2">
+                            <div class="glass-dark rounded-xl overflow-hidden h-full neon-border">
+                                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/30">
+                                    <h3 class="text-lg font-semibold text-teal-100 font-display">Template Editor</h3>
+                                    <div class="flex space-x-2 template-actions hidden">
+                                        <button id="saveTemplateBtn" class="px-3 py-1.5 text-xs font-medium rounded-lg text-green-300 bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 transition-colors">
+                                            <i class="fas fa-save mr-1"></i> Save
+                                        </button>
+                                        <button id="validateTemplateBtn" class="px-3 py-1.5 text-xs font-medium rounded-lg text-blue-300 bg-blue-500/10 border border-blue-500/20 hover:bg-blue-500/20 transition-colors">
+                                            <i class="fas fa-check-circle mr-1"></i> Validate
+                                        </button>
+                                        <button id="deleteTemplateBtn" class="px-3 py-1.5 text-xs font-medium rounded-lg text-red-300 bg-red-500/10 border border-red-500/20 hover:bg-red-500/20 transition-colors">
+                                            <i class="fas fa-trash mr-1"></i> Delete
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-6 max-h-[85vh] overflow-y-auto">
+                                    <div id="templateEditor">
+                                        <div class="mb-4">
+                                            <label for="templateName" class="block text-sm font-medium text-gray-400 mb-2">Template Name</label>
+                                            <input type="text" id="templateName" class="w-full px-4 py-2 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-500">
+                                            <input type="hidden" id="templateId" value="">
+                                        </div>
+                                        
+                                        <div class="mb-4">
+                                            <label for="templateDescription" class="block text-sm font-medium text-gray-400 mb-2">Description</label>
+                                            <input type="text" id="templateDescription" class="w-full px-4 py-2 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-teal-500">
+                                        </div>
+                                        
+                                        <div class="mb-6">
+                                            <label for="templateText" class="block text-sm font-medium text-gray-400 mb-2">Template Text</label>
+                                            <textarea id="templateText" rows="12" class="w-full px-4 py-3 rounded-lg frost-input text-gray-200 font-mono text-sm focus:outline-none focus:ring-1 focus:ring-teal-500 resize-none"></textarea>
+                                        </div>
+                                        
+                                        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50 mb-4">
+                                            <h4 class="text-sm font-semibold text-teal-300 mb-2">Available Placeholders</h4>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div class="text-xs text-gray-300 bg-slate-800/80 px-3 py-2 rounded">
+                                                    <code>{{model_response}}</code> - Model's response (required)
+                                                </div>
+                                                <div class="text-xs text-gray-300 bg-slate-800/80 px-3 py-2 rounded">
+                                                    <code>{{value}}</code> - Value name
+                                                </div>
+                                                <div class="text-xs text-gray-300 bg-slate-800/80 px-3 py-2 rounded">
+                                                    <code>{{value_definition}}</code> - Value definition
+                                                </div>
+                                                <div class="text-xs text-gray-300 bg-slate-800/80 px-3 py-2 rounded">
+                                                    <code>{{probe}}</code> - Original probe
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div id="validationResult" class="hidden mb-4 p-4 rounded-lg"></div>
+                                    </div>
+                                    
+                                    <div id="noTemplateSelected" class="text-center text-gray-400 py-16">
+                                        <p class="text-2xl mb-2"><i class="fas fa-file-alt"></i></p>
+                                        <p>Select a template to edit or create a new one</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Value Information Modal -->
+    <div id="valueInfoModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm" id="modalOverlay"></div>
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="glass-dark rounded-xl overflow-hidden max-w-md w-full neon-border">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/30">
+                    <h3 class="text-lg font-semibold text-blue-100 font-display" id="modalValueName">Value Information</h3>
+                    <button id="closeModal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <p class="text-gray-300 mb-4" id="modalValueDescription"></p>
+                    <div class="flex justify-end">
+                        <button id="modalClose" class="tech-button px-4 py-2 rounded-lg text-gray-300 hover:text-white transition-colors">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Template -->
+    <template id="toastTemplate">
+        <div class="toast-item fixed right-0 top-0 transform translate-x-full transition-all duration-300 ease-out flex items-center w-72 max-w-xs p-4 mb-4 rounded-lg shadow">
+            <div class="toast-icon inline-flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-lg mr-3">
+                <i class="fas"></i>
+            </div>
+            <div class="toast-message text-sm font-normal"></div>
+            <button type="button" class="toast-close ml-auto -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex h-8 w-8 hover:bg-gray-700/50 hover:text-white">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </template>
+
+    <!-- Particles Canvas -->
+    <canvas id="particles-bg" class="fixed inset-0 z-0 pointer-events-none"></canvas>
+
+    <!-- Value Management Modal -->
+    <div id="valueManagementModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm" id="valueModalOverlay"></div>
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="glass-dark rounded-xl overflow-hidden max-w-4xl w-full neon-border">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/30">
+                    <h3 class="text-lg font-semibold text-blue-100 font-display">Manage Value Pool</h3>
+                    <button id="closeValueModal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-6 max-h-[70vh] overflow-y-auto">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Categories Panel -->
+                        <div class="md:col-span-1">
+                            <div class="frosted-dark rounded-xl p-4 h-full">
+                                <h4 class="text-sm font-semibold text-gray-300 mb-3">Categories</h4>
+                                <div class="space-y-2 mb-4" id="categoryList">
+                                    <!-- Categories will be populated here -->
+                                </div>
+                                <div class="mt-4">
+                                    <div class="flex space-x-2">
+                                        <input type="text" id="newCategoryName" placeholder="New category name" class="w-full text-sm px-3 py-2 rounded-lg frost-input text-gray-200">
+                                        <button id="addCategoryBtn" class="tech-button px-3 py-2 rounded-lg bg-indigo-500/20 text-indigo-300 text-sm">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Values Panel -->
+                        <div class="md:col-span-2">
+                            <div class="frosted-dark rounded-xl p-4 h-full">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h4 class="text-sm font-semibold text-gray-300" id="selectedCategoryTitle">Select a category</h4>
+                                    <div id="valueActionsContainer" class="hidden">
+                                        <button id="addValueBtn" class="tech-button px-3 py-1.5 text-xs rounded-lg bg-blue-500/20 text-blue-300">
+                                            <i class="fas fa-plus mr-1"></i> Add Value
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="valueListContainer" class="mt-2">
+                                    <p class="text-gray-500 text-sm italic">Select a category to view and manage values</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Value Modal -->
+    <div id="valueEditModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm" id="editModalOverlay"></div>
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="glass-dark rounded-xl overflow-hidden max-w-md w-full neon-border">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/30">
+                    <h3 class="text-lg font-semibold text-blue-100 font-display" id="valueEditTitle">Add Value</h3>
+                    <button id="closeEditModal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <form id="valueEditForm">
+                        <input type="hidden" id="editValueId" value="">
+                        <input type="hidden" id="editCategoryName" value="">
+                        <div class="mb-4">
+                            <label for="editValueName" class="block text-sm font-medium text-gray-400 mb-2">Value Name:</label>
+                            <input type="text" id="editValueName" class="w-full px-4 py-2 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="e.g., care_harm">
+                            <p class="mt-1 text-xs text-gray-500">Use snake_case (lowercase with underscores)</p>
+                        </div>
+                        <div class="mb-6">
+                            <label for="editValueDescription" class="block text-sm font-medium text-gray-400 mb-2">Description:</label>
+                            <textarea id="editValueDescription" rows="4" class="w-full px-4 py-3 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" placeholder="Describe the value dimension..."></textarea>
+                        </div>
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" id="cancelEditBtn" class="px-4 py-2 rounded-lg text-gray-300 bg-gray-800 border border-gray-700 hover:bg-gray-700 transition-colors text-sm">
+                                Cancel
+                            </button>
+                            <button type="submit" id="saveValueBtn" class="tech-button px-5 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium text-sm hover:from-blue-700 hover:to-indigo-700 transition-all transform">
+                                Save
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm" id="confirmModalOverlay"></div>
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="glass-dark rounded-xl overflow-hidden max-w-md w-full neon-border">
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/30">
+                    <h3 class="text-lg font-semibold text-red-300 font-display" id="confirmTitle">Confirm Action</h3>
+                    <button id="closeConfirmModal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <p class="text-gray-300 mb-4" id="confirmMessage">Are you sure you want to proceed with this action?</p>
+                    <div class="flex justify-end space-x-3">
+                        <button id="cancelConfirmBtn" class="px-4 py-2 rounded-lg text-gray-300 bg-gray-800 border border-gray-700 hover:bg-gray-700 transition-colors text-sm">
+                            Cancel
+                        </button>
+                        <button id="confirmActionBtn" class="px-4 py-2 rounded-lg bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 transition-colors text-sm">
+                            Confirm
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab System
+            const tabButtons = document.querySelectorAll('[data-tabs-target]');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const target = document.querySelector(button.dataset.tabsTarget);
+                    
+                    tabPanes.forEach(pane => {
+                        pane.classList.add('hidden');
+                        pane.classList.remove('active');
+                    });
+                    
+                    tabButtons.forEach(btn => {
+                        btn.classList.remove('active', 'text-blue-400', 'border-blue-500');
+                        btn.classList.add('hover:text-gray-300', 'hover:border-gray-700', 'border-transparent');
+                        btn.setAttribute('aria-selected', 'false');
+                    });
+                    
+                    target.classList.remove('hidden');
+                    target.classList.add('active');
+                    button.classList.add('active', 'text-blue-400', 'border-blue-500');
+                    button.classList.remove('hover:text-gray-300', 'hover:border-gray-700', 'border-transparent');
+                    button.setAttribute('aria-selected', 'true');
+                });
+            });
+            
+            // 进度指示器更新函数
+            function updateProgressStep(viewId) {
+                const stepMap = {
+                    'values': 1,
+                    'probes': 2,
+                    'responses': 3,
+                    'analysis': 4,
+                    'visualization': 5
+                };
+                
+                const currentStep = stepMap[viewId] || 0;
+                
+                // 更新步骤指示器
+                document.querySelectorAll('.progress-step').forEach((step, index) => {
+                    const stepNum = index + 1;
+                    if (stepNum <= currentStep) {
+                        step.classList.add('active');
+                        step.querySelector('div').classList.remove('bg-gray-700', 'text-gray-400');
+                        step.querySelector('div').classList.add('bg-blue-600', 'text-white');
+                        step.querySelector('span').classList.remove('text-gray-500');
+                        step.querySelector('span').classList.add('text-blue-400');
+                    } else {
+                        step.classList.remove('active');
+                        step.querySelector('div').classList.add('bg-gray-700', 'text-gray-400');
+                        step.querySelector('div').classList.remove('bg-blue-600', 'text-white');
+                        step.querySelector('span').classList.add('text-gray-500');
+                        step.querySelector('span').classList.remove('text-blue-400');
+                    }
+                    
+                    // 更新连接器
+                    if (stepNum < 5) {
+                        const connector = document.getElementById(`connector${stepNum}`);
+                        if (stepNum < currentStep) {
+                            connector.style.width = '100%';
+                        } else {
+                            connector.style.width = '0%';
+                        }
+                    }
+                });
+            }
+            
+            // 初始化Home页面的Value标签
+            function initializeHomeValueLabels() {
+                const container = document.getElementById('valueLabelsContainer');
+                if (!container) return;
+                
+                // 获取value dimensions
+                fetch('/api/values')
+                    .then(response => response.json())
+                    .then(data => {
+                        let allValues = [];
+                        
+                        // 合并所有分类的值
+                        for (const category in data.dimensions) {
+                            allValues = allValues.concat(data.dimensions[category]);
+                        }
+                        
+                        // 限制显示的标签数量（最多显示20个）
+                        const displayValues = allValues.slice(0, 20);
+                        
+                        // 清空容器
+                        container.innerHTML = '';
+                        
+                        // 创建value标签
+                        displayValues.forEach((value, index) => {
+                            const label = document.createElement('div');
+                            label.className = 'value-label';
+                            label.textContent = value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                            
+                            // 为每个标签设置随机延迟和旋转
+                            const delay = (index % 5) * 0.2;
+                            const rotation = (Math.random() * 6) - 3;
+                            label.style.setProperty('--delay', delay);
+                            label.style.setProperty('--rotation', rotation);
+                            
+                            // 点击显示value详情
+                            label.addEventListener('click', () => {
+                                showValueInfo(value, data.descriptions[value] || 'No description available');
+                            });
+                            
+                            container.appendChild(label);
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error fetching values:', error);
+                        container.innerHTML = '<p class="text-red-400">Error loading values</p>';
+                    });
+            }
+            
+            // 显示value信息弹窗
+            function showValueInfo(valueName, description) {
+                const modal = document.getElementById('valueInfoModal');
+                const valueNameElement = document.getElementById('modalValueName');
+                const valueDescElement = document.getElementById('modalValueDescription');
+                
+                valueNameElement.textContent = valueName.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                valueDescElement.textContent = description;
+                
+                modal.classList.remove('hidden');
+            }
+            
+            // 显示通知
+            function showNotification(message, type = 'info') {
+                const toastContainer = document.getElementById('toastContainer');
+                const template = document.getElementById('toastTemplate');
+                
+                if (!toastContainer || !template) return;
+                
+                const toast = template.content.cloneNode(true).querySelector('.toast-item');
+                const icon = toast.querySelector('.toast-icon i');
+                const messageEl = toast.querySelector('.toast-message');
+                
+                messageEl.textContent = message;
+                
+                // 设置通知类型样式
+                switch (type) {
+                    case 'success':
+                        toast.classList.add('bg-green-800/80', 'text-green-100');
+                        toast.querySelector('.toast-icon').classList.add('bg-green-700/80', 'text-green-100');
+                        icon.classList.add('fa-check-circle');
+                        break;
+                    case 'error':
+                        toast.classList.add('bg-red-800/80', 'text-red-100');
+                        toast.querySelector('.toast-icon').classList.add('bg-red-700/80', 'text-red-100');
+                        icon.classList.add('fa-exclamation-circle');
+                        break;
+                    case 'warning':
+                        toast.classList.add('bg-yellow-800/80', 'text-yellow-100');
+                        toast.querySelector('.toast-icon').classList.add('bg-yellow-700/80', 'text-yellow-100');
+                        icon.classList.add('fa-exclamation-triangle');
+                        break;
+                    default:
+                        toast.classList.add('bg-blue-800/80', 'text-blue-100');
+                        toast.querySelector('.toast-icon').classList.add('bg-blue-700/80', 'text-blue-100');
+                        icon.classList.add('fa-info-circle');
+                }
+                
+                // 添加通知到容器
+                toastContainer.appendChild(toast);
+                
+                // 动画显示
+                setTimeout(() => {
+                    toast.classList.remove('translate-x-full');
+                    toast.classList.add('translate-x-0');
+                }, 10);
+                
+                // 自动关闭
+                setTimeout(() => {
+                    toast.classList.remove('translate-x-0');
+                    toast.classList.add('translate-x-full');
+                    
+                    // 移除元素
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 300);
+                }, 5000);
+                
+                // 关闭按钮
+                toast.querySelector('.toast-close').addEventListener('click', () => {
+                    toast.classList.remove('translate-x-0');
+                    toast.classList.add('translate-x-full');
+                    
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 300);
+                });
+            }
+            
+            // 初始化Home页面的Value标签
+            initializeHomeValueLabels();
+            
+            // Sidebar Toggle for Mobile
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const closeSidebar = document.getElementById('closeSidebar');
+            const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+            
+            sidebarToggle.addEventListener('click', () => {
+                sidebar.classList.remove('-translate-x-full');
+                sidebarBackdrop.classList.remove('hidden');
+            });
+            
+            function hideSidebar() {
+                sidebar.classList.add('-translate-x-full');
+                sidebarBackdrop.classList.add('hidden');
+            }
+            
+            closeSidebar.addEventListener('click', hideSidebar);
+            sidebarBackdrop.addEventListener('click', hideSidebar);
+            
+            // Value信息弹窗关闭按钮
+            document.querySelectorAll('#closeModal, #modalClose, #modalOverlay').forEach(el => {
+                el.addEventListener('click', () => {
+                    document.getElementById('valueInfoModal').classList.add('hidden');
+                });
+            });
+            
+            // Initialize particles background
+            initParticles();
+            
+            // Settings模态框
+            const settingsModal = document.getElementById('settingsModal');
+            const settingsLink = document.querySelector('a[href="#"] i.fa-sliders-h').parentElement;
+            
+            // 打开Settings模态框
+            settingsLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                settingsModal.classList.remove('hidden');
+                // 加载当前配置
+                loadSettings();
+            });
+            
+            // 关闭Settings模态框
+            document.querySelectorAll('#closeSettingsModal, #settingsModalOverlay').forEach(el => {
+                el.addEventListener('click', () => {
+                    settingsModal.classList.add('hidden');
+                });
+            });
+            
+            // 切换Settings选项卡
+            const settingsTabs = document.querySelectorAll('#apiSettingsTab, #modelSettingsTab, #appSettingsTab');
+            const settingsContents = document.querySelectorAll('.settings-content');
+            
+            settingsTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // 取消选中所有选项卡
+                    settingsTabs.forEach(t => {
+                        t.classList.remove('text-blue-300', 'bg-blue-900/20', 'border-blue-500/20');
+                        t.classList.add('text-gray-400', 'border-transparent');
+                    });
+                    
+                    // 选中当前选项卡
+                    tab.classList.remove('text-gray-400', 'border-transparent');
+                    tab.classList.add('text-blue-300', 'bg-blue-900/20', 'border-blue-500/20');
+                    
+                    // 隐藏所有内容
+                    settingsContents.forEach(content => {
+                        content.classList.add('hidden');
+                    });
+                    
+                    // 显示对应内容
+                    const contentId = tab.id.replace('Tab', 'Content');
+                    document.getElementById(contentId).classList.remove('hidden');
+                });
+            });
+            
+            // 切换密码可见性
+            document.querySelectorAll('.toggle-password').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const input = btn.parentElement.querySelector('input');
+                    const icon = btn.querySelector('i');
+                    
+                    if (input.type === 'password') {
+                        input.type = 'text';
+                        icon.classList.remove('fa-eye');
+                        icon.classList.add('fa-eye-slash');
+                    } else {
+                        input.type = 'password';
+                        icon.classList.remove('fa-eye-slash');
+                        icon.classList.add('fa-eye');
+                    }
+                });
+            });
+            
+            // 表单提交处理
+            const apiSettingsForm = document.getElementById('apiSettingsForm');
+            if (apiSettingsForm) {
+                apiSettingsForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // 获取API配置
+                    const apiSettings = {
+                        openai: {
+                            api_key: document.getElementById('openaiApiKey')?.value || '',
+                            org_id: document.getElementById('openaiOrgId')?.value || '',
+                            enabled: document.getElementById('openaiEnabled')?.checked || false
+                        },
+                        anthropic: {
+                            api_key: document.getElementById('anthropicApiKey')?.value || '',
+                            enabled: document.getElementById('anthropicEnabled')?.checked || false
+                        }
+                    };
+                    
+                    // 保存到localStorage
+                    const saveApiLocally = document.getElementById('saveApiLocally');
+                    if (saveApiLocally && saveApiLocally.checked) {
+                        localStorage.setItem('apiSettings', JSON.stringify(apiSettings));
+                    }
+                    
+                    // 向服务器发送配置（需要后端API支持）
+                    fetch('/api/settings/api', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(apiSettings),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showNotification('API settings saved successfully', 'success');
+                        } else {
+                            showNotification('Failed to save API settings: ' + data.error, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error saving API settings:', error);
+                        showNotification('Error saving API settings', 'error');
+                    });
+                });
+            }
+            
+            const modelSettingsForm = document.getElementById('modelSettingsForm');
+            if (modelSettingsForm) {
+                modelSettingsForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // 获取模型配置
+                    const openaiModels = [];
+                    document.querySelectorAll('input[id^="model-gpt-"]').forEach(checkbox => {
+                        if (checkbox.checked) {
+                            openaiModels.push(checkbox.id.replace('model-', ''));
+                        }
+                    });
+                    
+                    const anthropicModels = [];
+                    document.querySelectorAll('input[id^="model-claude-"]').forEach(checkbox => {
+                        if (checkbox.checked) {
+                            anthropicModels.push(checkbox.id.replace('model-', ''));
+                        }
+                    });
+                    
+                    const modelSettings = {
+                        openai: {
+                            default_model: document.getElementById('openaiDefaultModel')?.value || '',
+                            available_models: openaiModels
+                        },
+                        anthropic: {
+                            default_model: document.getElementById('anthropicDefaultModel')?.value || '',
+                            available_models: anthropicModels
+                        }
+                    };
+                    
+                    // 向服务器发送配置
+                    fetch('/api/settings/models', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(modelSettings),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showNotification('Model settings saved successfully', 'success');
+                        } else {
+                            showNotification('Failed to save model settings: ' + data.error, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error saving model settings:', error);
+                        showNotification('Error saving model settings', 'error');
+                    });
+                });
+            }
+            
+            const appSettingsForm = document.getElementById('appSettingsForm');
+            if (appSettingsForm) {
+                appSettingsForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // 获取应用配置
+                    const appSettings = {
+                        interface: {
+                            dark_mode_default: document.getElementById('darkModeDefault')?.checked || false
+                        },
+                        system: {
+                            save_api_locally: document.getElementById('saveApiLocally')?.checked || false,
+                            cache_timeout: parseInt(document.getElementById('cacheTimeout')?.value || '3600')
+                        }
+                    };
+                    
+                    // 向服务器发送配置
+                    fetch('/api/settings/app', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(appSettings),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showNotification('Application settings saved successfully', 'success');
+                        } else {
+                            showNotification('Failed to save application settings: ' + data.error, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error saving application settings:', error);
+                        showNotification('Error saving application settings', 'error');
+                    });
+                });
+            }
+            
+            // 加载设置
+            function loadSettings() {
+                // 尝试从localStorage加载API设置
+                try {
+                    const savedApiSettings = localStorage.getItem('apiSettings');
+                    if (savedApiSettings) {
+                        const apiSettings = JSON.parse(savedApiSettings);
+                        
+                        // 填充OpenAI设置
+                        if (apiSettings.openai) {
+                            document.getElementById('openaiApiKey').value = apiSettings.openai.api_key || '';
+                            document.getElementById('openaiOrgId').value = apiSettings.openai.org_id || '';
+                            document.getElementById('openaiEnabled').checked = apiSettings.openai.enabled || false;
+                        }
+                        
+                        // 填充Anthropic设置
+                        if (apiSettings.anthropic) {
+                            document.getElementById('anthropicApiKey').value = apiSettings.anthropic.api_key || '';
+                            document.getElementById('anthropicEnabled').checked = apiSettings.anthropic.enabled || false;
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error loading saved API settings:', e);
+                }
+                
+                // 从服务器加载全部设置
+                fetch('/api/settings')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // 填充模型设置
+                            if (data.settings.models) {
+                                const models = data.settings.models;
+                                
+                                // OpenAI模型
+                                if (models.openai) {
+                                    if (models.openai.default_model) {
+                                        document.getElementById('openaiDefaultModel').value = models.openai.default_model;
+                                    }
+                                    
+                                    if (models.openai.available_models && Array.isArray(models.openai.available_models)) {
+                                        // 重置所有复选框
+                                        document.querySelectorAll('input[id^="model-gpt-"]').forEach(checkbox => {
+                                            checkbox.checked = false;
+                                        });
+                                        
+                                        // 选中可用模型
+                                        models.openai.available_models.forEach(model => {
+                                            const checkbox = document.getElementById(`model-${model}`);
+                                            if (checkbox) {
+                                                checkbox.checked = true;
+                                            }
+                                        });
+                                    }
+                                }
+                                
+                                // Anthropic模型
+                                if (models.anthropic) {
+                                    if (models.anthropic.default_model) {
+                                        document.getElementById('anthropicDefaultModel').value = models.anthropic.default_model;
+                                    }
+                                    
+                                    if (models.anthropic.available_models && Array.isArray(models.anthropic.available_models)) {
+                                        // 重置所有复选框
+                                        document.querySelectorAll('input[id^="model-claude-"]').forEach(checkbox => {
+                                            checkbox.checked = false;
+                                        });
+                                        
+                                        // 选中可用模型
+                                        models.anthropic.available_models.forEach(model => {
+                                            const checkbox = document.getElementById(`model-${model}`);
+                                            if (checkbox) {
+                                                checkbox.checked = true;
+                                            }
+                                        });
+                                    }
+                                }
+                            }
+                            
+                            // 填充应用设置
+                            if (data.settings.app) {
+                                const app = data.settings.app;
+                                
+                                if (app.interface) {
+                                    document.getElementById('darkModeDefault').checked = app.interface.dark_mode_default || false;
+                                }
+                                
+                                if (app.system) {
+                                    document.getElementById('saveApiLocally').checked = app.system.save_api_locally || false;
+                                    document.getElementById('cacheTimeout').value = app.system.cache_timeout || 3600;
+                                }
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading settings from server:', error);
+                    });
+            }
+            
+            console.log('紧急修复已应用到问题格式复选框');
+            
+            // 修复Manage按钮点击事件
+            const manageValuesBtn = document.getElementById('manageValuesBtn');
+            const valueManagementModal = document.getElementById('valueManagementModal');
+            const closeValueModalBtn = document.getElementById('closeValueModal');
+            const valueModalOverlay = document.getElementById('valueModalOverlay');
+            
+            if (manageValuesBtn && valueManagementModal) {
+                manageValuesBtn.addEventListener('click', function() {
+                    // 显示Value Management模态框
+                    valueManagementModal.classList.remove('hidden');
+                    
+                    // 加载分类列表
+                    loadCategories();
+                });
+                
+                // 关闭模态框事件
+                if (closeValueModalBtn) {
+                    closeValueModalBtn.addEventListener('click', function() {
+                        valueManagementModal.classList.add('hidden');
+                    });
+                }
+                
+                if (valueModalOverlay) {
+                    valueModalOverlay.addEventListener('click', function() {
+                        valueManagementModal.classList.add('hidden');
+                    });
+                }
+                
+                console.log('Manage按钮事件处理已修复');
+            }
+            
+            // 加载分类函数
+            function loadCategories() {
+                fetch('/api/values')
+                    .then(response => response.json())
+                    .then(data => {
+                        const categoryList = document.getElementById('categoryList');
+                        if (!categoryList) return;
+                        
+                        // 清空列表
+                        categoryList.innerHTML = '';
+                        
+                        // 添加每个分类
+                        for (const category in data.dimensions) {
+                            const categoryItem = document.createElement('div');
+                            categoryItem.className = 'flex items-center justify-between py-2 px-3 rounded-lg hover:bg-slate-800/50 cursor-pointer category-item';
+                            categoryItem.setAttribute('data-category', category);
+                            
+                            categoryItem.innerHTML = `
+                                <span class="text-sm text-gray-300">${category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                                <button class="delete-category-btn text-red-400 hover:text-red-300 w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-900/20">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
+                            `;
+                            
+                            categoryList.appendChild(categoryItem);
+                            
+                            // 点击分类加载值
+                            categoryItem.addEventListener('click', function(e) {
+                                // 忽略删除按钮点击
+                                if (e.target.closest('.delete-category-btn')) return;
+                                
+                                const category = this.getAttribute('data-category');
+                                loadValuesForCategory(category, data.dimensions[category], data.descriptions);
+                                
+                                // 高亮选中的分类
+                                document.querySelectorAll('.category-item').forEach(item => {
+                                    item.classList.remove('bg-indigo-900/20', 'border-indigo-500/30');
+                                });
+                                this.classList.add('bg-indigo-900/20', 'border-indigo-500/30');
+                            });
+                            
+                            // 删除分类按钮
+                            const deleteBtn = categoryItem.querySelector('.delete-category-btn');
+                            deleteBtn.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                const category = categoryItem.getAttribute('data-category');
+                                deleteCategory(category);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('加载分类失败:', error);
+                    });
+            }
+            
+            // 加载特定分类的值
+            function loadValuesForCategory(category, values, descriptions) {
+                const valueListContainer = document.getElementById('valueListContainer');
+                const selectedCategoryTitle = document.getElementById('selectedCategoryTitle');
+                const valueActionsContainer = document.getElementById('valueActionsContainer');
+                
+                if (!valueListContainer || !selectedCategoryTitle) return;
+                
+                // 更新标题
+                selectedCategoryTitle.textContent = category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                
+                // 显示添加按钮
+                if (valueActionsContainer) {
+                    valueActionsContainer.classList.remove('hidden');
+                }
+                
+                // 存储当前分类
+                if (document.getElementById('editCategoryName')) {
+                    document.getElementById('editCategoryName').value = category;
+                }
+                
+                // 清空列表
+                valueListContainer.innerHTML = '';
+                
+                // 添加每个值
+                if (values && values.length > 0) {
+                    const valueTable = document.createElement('div');
+                    valueTable.className = 'overflow-x-auto';
+                    valueTable.innerHTML = `
+                        <table class="w-full text-sm text-left text-gray-300">
+                            <thead class="text-xs text-gray-400 uppercase bg-slate-800/50">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3">Name</th>
+                                    <th scope="col" class="px-4 py-3">Description</th>
+                                    <th scope="col" class="px-4 py-3 w-24">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="valueTableBody">
+                            </tbody>
+                        </table>
+                    `;
+                    
+                    valueListContainer.appendChild(valueTable);
+                    
+                    const tableBody = document.getElementById('valueTableBody');
+                    values.forEach(value => {
+                        const row = document.createElement('tr');
+                        row.className = 'border-b border-gray-700 hover:bg-slate-800/30';
+                        row.innerHTML = `
+                            <td class="px-4 py-3 font-medium">${value.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
+                            <td class="px-4 py-3">${descriptions[value] || 'No description'}</td>
+                            <td class="px-4 py-3">
+                                <div class="flex space-x-2">
+                                    <button class="edit-value-btn px-2 py-1 text-xs rounded-lg bg-blue-900/20 text-blue-400 hover:bg-blue-900/40" data-value="${value}">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="delete-value-btn px-2 py-1 text-xs rounded-lg bg-red-900/20 text-red-400 hover:bg-red-900/40" data-value="${value}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                        
+                        // 编辑按钮事件
+                        row.querySelector('.edit-value-btn').addEventListener('click', function() {
+                            const valueName = this.getAttribute('data-value');
+                            editValue(valueName, descriptions[valueName] || '');
+                        });
+                        
+                        // 删除按钮事件
+                        row.querySelector('.delete-value-btn').addEventListener('click', function() {
+                            const valueName = this.getAttribute('data-value');
+                            deleteValue(valueName);
+                        });
+                    });
+                } else {
+                    valueListContainer.innerHTML = '<p class="text-gray-500 text-sm italic">No values in this category</p>';
+                }
+            }
+        });
+        
+        // Particles Animation
+        function initParticles() {
+            const canvas = document.getElementById('particles-bg');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            window.addEventListener('resize', function() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+            
+            const particles = [];
+            const particleCount = 80;
+            
+            // Create particles
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2 + 0.5,
+                    speedX: Math.random() * 0.3 - 0.15,
+                    speedY: Math.random() * 0.3 - 0.15,
+                    color: getRandomColor()
+                });
+            }
+            
+            function getRandomColor() {
+                const colors = [
+                    'rgba(0, 243, 255, 0.6)',  // neon blue
+                    'rgba(157, 0, 255, 0.5)',  // neon purple
+                    'rgba(0, 255, 163, 0.5)',  // neon green
+                    'rgba(255, 0, 195, 0.4)'   // neon pink
+                ];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            function drawParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                particles.forEach((particle, index) => {
+                    // Move particle
+                    particle.x += particle.speedX;
+                    particle.y += particle.speedY;
+                    
+                    // Wrap around edges
+                    if (particle.x > canvas.width) particle.x = 0;
+                    if (particle.x < 0) particle.x = canvas.width;
+                    if (particle.y > canvas.height) particle.y = 0;
+                    if (particle.y < 0) particle.y = canvas.height;
+                    
+                    // Draw particle
+                    ctx.fillStyle = particle.color;
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw connections
+                    connectParticles(particle, particles.slice(index));
+                });
+                
+                requestAnimationFrame(drawParticles);
+            }
+            
+            function connectParticles(p1, particles) {
+                particles.forEach(p2 => {
+                    const distance = Math.sqrt(
+                        Math.pow(p1.x - p2.x, 2) + 
+                        Math.pow(p1.y - p2.y, 2)
+                    );
+                    
+                    if (distance < 100) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(0, 243, 255, ${0.1 - distance / 1000})`;
+                        ctx.lineWidth = 0.4;
+                        ctx.moveTo(p1.x, p1.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                });
+            }
+            
+            drawParticles();
+        }
+    </script>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm" id="settingsModalOverlay"></div>
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="glass-dark rounded-xl overflow-hidden max-w-4xl w-full max-h-[90vh] flex flex-col neon-border">
+                <div class="flex items-center justify-between px-6 py-3 border-b border-slate-700/30">
+                    <h3 class="text-lg font-semibold text-blue-100 font-display">
+                        <i class="fas fa-sliders-h mr-2 text-blue-400"></i>
+                        System Settings
+                    </h3>
+                    <button id="closeSettingsModal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-3 overflow-y-auto flex-1">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="md:col-span-1">
+                            <div class="frosted-dark rounded-xl p-3 h-full">
+                                <h4 class="text-sm font-semibold text-gray-300 mb-2 font-display">Settings</h4>
+                                <div class="space-y-1 mb-2">
+                                    <button id="apiSettingsTab" class="w-full flex items-center px-4 py-2 text-sm text-blue-300 bg-blue-900/20 rounded-lg border border-blue-500/20 hover:bg-blue-900/30 transition-all">
+                                        <i class="fas fa-key w-5 h-5 mr-3"></i>
+                                        <span>API & Models</span>
+                                    </button>
+                                </div>
+                                <div class="mt-4 p-3 bg-slate-900/30 rounded-lg border border-slate-700/50">
+                                    <h4 class="text-sm font-semibold text-blue-300 mb-2">Guideline</h4>
+                                    <p class="text-xs text-gray-400">
+                                        This page is generated dynamically based on your `conf.yaml` file. To add a new model provider, simply edit the `conf.yaml` file and refresh the page.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <div id="apiSettingsContent" class="settings-content">
+                                <div id="settingsContainer" class="frosted-dark rounded-xl p-4 h-full overflow-y-auto" style="max-height: 70vh;">
+                                    <form id="apiSettingsForm" class="settings-form">
+                                        <!-- API settings form fields will be populated dynamically -->
+                                    </form>
+                                    
+                                    <form id="modelSettingsForm" class="settings-form hidden">
+                                        <!-- Model settings form fields will be populated dynamically -->
+                                    </form>
+                                    
+                                    <form id="appSettingsForm" class="settings-form hidden">
+                                        <!-- App settings form fields will be populated dynamically -->
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 py-3 border-t border-slate-700/30 bg-slate-800/20 flex justify-end">
+                    <button id="saveSettingsBtn" class="tech-button px-5 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-medium text-sm hover:from-blue-700 hover:to-cyan-700 transition-all">
+                        <i class="fas fa-save mr-2"></i> Save All Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <template id="providerTemplate">
+        <div class="provider-block mb-6" data-provider-name="">
+            <h5 class="provider-title text-sm font-medium text-gray-300 mb-2 flex items-center">
+                <span class="provider-name">Provider Name</span>
+                <div class="provider-status-light w-2 h-2 rounded-full ml-2"></div>
+            </h5>
+            <div class="new-provider-name-container hidden mb-2">
+                <label class="block text-xs text-gray-400 mb-1">New Provider Name (e.g., my_model_api)</label>
+                <input type="text" class="new-provider-name-input w-full px-3 py-1.5 rounded-lg frost-input text-gray-200 text-sm" placeholder="Must be unique, use lowercase_snake_case">
+            </div>
+            <div class="space-y-3 p-3 bg-slate-800/30 rounded-lg border border-slate-700/50">
+                <div class="flex items-center">
+                    <input type="checkbox" class="provider-enabled value-checkbox absolute opacity-0 w-5 h-5 cursor-pointer">
+                    <div class="checkbox-custom w-5 h-5 border-2 border-gray-500 rounded flex items-center justify-center transition-all duration-200 cursor-pointer hover:border-neon-blue"><i class="fas fa-check text-neon-blue opacity-0 transition-opacity duration-200 text-xs"></i></div>
+                    <label class="provider-enabled-label ml-3 text-sm font-medium text-gray-300 cursor-pointer transition-colors">Enable Provider</label>
+                </div>
+                <div>
+                    <label class="provider-api-key-label block text-xs text-gray-400 mb-1">API Key</label>
+                    <div class="relative">
+                        <input type="password" class="provider-api-key w-full px-3 py-1.5 rounded-lg frost-input text-gray-200 text-sm pr-10" placeholder="Enter API key...">
+                        <button type="button" class="toggle-password absolute right-2 top-1.5 text-gray-400 hover:text-white"><i class="fas fa-eye"></i></button>
+                    </div>
+                </div>
+                <div class="provider-base-url-container hidden">
+                    <label class="provider-base-url-label block text-xs text-gray-400 mb-1">Base URL</label>
+                    <input type="text" class="provider-base-url w-full px-3 py-1.5 rounded-lg frost-input text-gray-200 text-sm" placeholder="https://api.example.com">
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-700/50">
+                    <h6 class="text-xs font-semibold text-gray-400 mb-2">Model Configuration</h6>
+                    <div class="mt-3">
+                            <label class="provider-available-models-label block text-xs text-gray-400 mb-1">Available Models</label>
+                            <div class="provider-models-list bg-slate-800/40 p-3 rounded-lg border border-slate-700/50 max-h-40 overflow-y-auto space-y-2">
+                                </div>
+                            <div class="new-model-form hidden mt-2">
+                                <div class="flex space-x-2">
+                                    <input type="text" class="new-model-input w-full px-3 py-1.5 rounded-lg frost-input text-gray-200 text-sm" placeholder="Enter a model name...">
+                                    <button type="button" class="add-model-btn tech-button px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-300 text-sm whitespace-nowrap">Add</button>
+                                </div>
+                            </div>
+                        </div>
+                </div>
+            </div>
+        </div>
+    </template>
+    
+    <div id="toastTemplate" class="hidden">
+        <div class="toast-item">
+            <!-- Toast content will be injected here -->
+        </div>
+    </div>
+
+    <!-- Probe Generation Selection Modal -->
+    <div id="probeGenerationSelectModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center">
+        <div class="glass-dark rounded-xl overflow-hidden max-w-2xl w-full neon-border">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/30">
+                <h3 class="text-lg font-semibold text-violet-100 font-display">Select Probe Generation</h3>
+                <button id="closeProbeGenerationModalBtn" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="probeGenerationsList" class="p-6 max-h-[60vh] overflow-y-auto">
+                <!-- Probe generations will be loaded here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Judge Template Editor Modal -->
+    <div id="templateEditorModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 flex items-center justify-center">
+        <!-- ... existing code ... -->
+    </div>
+    
+    <!-- Likert Scale Editor Modal -->
+    <div id="likertScaleModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 flex items-center justify-center">
+        <div class="bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            <div class="flex justify-between items-center p-4 border-b border-gray-800">
+                <h3 class="text-xl font-semibold text-blue-300 font-display">Likert Scale Editor</h3>
+                <button id="closeLikertScaleModal" class="text-gray-400 hover:text-gray-300">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 120px);">
+                <input type="hidden" id="likertScaleId" value="">
+                
+                <div class="mb-4">
+                    <label for="likertScaleName" class="block text-sm font-medium text-gray-400 mb-2">Scale Name</label>
+                    <input type="text" id="likertScaleName" placeholder="Enter scale name" class="w-full px-4 py-2 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="likertScaleDescription" class="block text-sm font-medium text-gray-400 mb-2">Description</label>
+                    <textarea id="likertScaleDescription" rows="2" placeholder="Describe this scale" class="w-full px-4 py-2 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-sm font-medium text-gray-400">Dimensions</label>
+                        <button id="addDimensionBtn" class="text-xs px-3 py-1 rounded bg-blue-800/50 text-blue-400 hover:bg-blue-800/80">
+                            <i class="fas fa-plus mr-1"></i> Add Dimension
+                        </button>
+                    </div>
+                    
+                    <div id="dimensionsList" class="space-y-4">
+                        <!-- Dimensions will be added here dynamically -->
+                    </div>
+                </div>
+                
+                <div id="dimensionTemplate" class="hidden">
+                    <div class="dimension-item bg-slate-800/70 rounded-lg p-4 border border-slate-700/50">
+                        <div class="flex justify-between items-center mb-3">
+                            <div class="flex items-center">
+                                <span class="dimension-number bg-blue-900/50 text-blue-300 w-7 h-7 rounded-full flex items-center justify-center text-sm font-medium">1</span>
+                                <input type="text" class="dimension-name ml-3 px-3 py-1 rounded-lg frost-input text-blue-200 focus:outline-none focus:ring-1 focus:ring-blue-500 w-60" placeholder="Dimension name (e.g., Accuracy)">
+                            </div>
+                            <button class="delete-dimension-btn text-red-400 hover:text-red-300 p-1">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="block text-xs text-gray-400 mb-1">Description</label>
+                            <input type="text" class="dimension-description w-full px-3 py-1 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Describe what this dimension measures">
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Scale Range</label>
+                                <div class="flex items-center">
+                                    <input type="number" class="dimension-min w-16 px-2 py-1 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500" min="1" max="10" value="1">
+                                    <span class="mx-2 text-gray-500">to</span>
+                                    <input type="number" class="dimension-max w-16 px-2 py-1 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500" min="1" max="10" value="5">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-400 mb-1">Labels (optional)</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <input type="text" class="dimension-min-label px-2 py-1 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="Min label">
+                                    <input type="text" class="dimension-max-label px-2 py-1 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 text-xs" placeholder="Max label">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-6 py-4 border-t border-gray-800 flex justify-end space-x-3">
+                <button id="saveLikertScaleBtn" class="tech-button px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium text-sm hover:from-blue-700 hover:to-indigo-700 transition-all">
+                    <i class="fas fa-save mr-1"></i> Save Scale
+                </button>
+                <button id="deleteLikertScaleBtn" class="tech-button px-4 py-2 rounded-lg bg-red-900/20 text-red-400 border border-red-800/30 font-medium text-sm hover:bg-red-900/40 transition-all">
+                    <i class="fas fa-trash mr-1"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Human Evaluation Modal -->
+    <div id="humanEvaluationModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 rounded-xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col border-2 border-slate-700/80 max-h-[75vh]">
+            <div class="flex justify-between items-center p-3 border-b border-gray-800 flex-shrink-0">
+                <h3 class="text-lg font-semibold text-green-300 font-display">Human Evaluation</h3>
+                <div class="flex items-center">
+                    <span id="evaluationProgress" class="text-sm text-gray-400 mr-4">Item 1 of 10</span>
+                    <button id="closeHumanEvaluationModal" class="text-gray-400 hover:text-gray-300">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="flex flex-col md:flex-row flex-1 overflow-hidden">
+                <!-- Left panel: Model response -->
+                <div class="evaluation-panel w-full md:w-1/2 border-b md:border-b-0 md:border-r border-gray-800 p-3 space-y-2 overflow-y-auto">
+                    <div>
+                        <h4 class="text-sm font-semibold text-blue-300 mb-1">Value</h4>
+                        <div id="evaluationValue" class="text-gray-200 bg-blue-900/10 rounded-lg p-2 border border-blue-900/30"></div>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-sm font-semibold text-violet-300 mb-1">Probe</h4>
+                        <div id="evaluationProbe" class="text-gray-200 bg-violet-900/10 rounded-lg p-2 border border-violet-900/30"></div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <h4 class="text-sm font-semibold text-green-300">Model Response</h4>
+                            <button id="addAnnotationButton" class="tech-button text-xs px-2 py-1 bg-yellow-500/10 text-yellow-300 border border-yellow-500/20 hover:bg-yellow-500/20 transition-colors">
+                                <i class="fas fa-plus mr-1"></i> Add Annotations
+                            </button>
+                        </div>
+                        <div id="evaluationResponse" class="text-gray-200 bg-green-900/10 rounded-lg p-2 border border-green-900/30 whitespace-pre-wrap max-h-40 overflow-y-auto"></div>
+                    </div>
+                </div>
+                
+                <!-- Right panel: Evaluation form -->
+                <div class="evaluation-panel w-full md:w-1/2 p-3 space-y-2 overflow-y-auto">
+                    <div id="evaluationForm" class="space-y-2">
+                        <!-- Will be populated dynamically based on the Likert scale -->
+                    </div>
+                    
+                    <div class="mt-2">
+                        <label for="evaluationComment" class="block text-sm font-semibold text-gray-300 mb-1">Comments (Optional)</label>
+                        <textarea id="evaluationComment" rows="2" placeholder="Add any additional comments or observations..." class="w-full px-3 py-1.5 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-green-500"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-3 py-2 border-t border-gray-800 flex flex-wrap md:flex-nowrap justify-between items-center gap-2 flex-shrink-0">
+                <div>
+                    <button id="prevItemBtn" class="tech-button px-3 py-1.5 rounded-lg bg-slate-800 text-gray-300 font-medium text-sm hover:bg-slate-700 transition-all">
+                        <i class="fas fa-chevron-left mr-1.5"></i> Previous
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="skipItemBtn" class="tech-button px-3 py-1.5 rounded-lg bg-yellow-900/40 text-yellow-300 border border-yellow-700/30 font-medium text-sm hover:bg-yellow-900/60 transition-all">
+                        Skip Item <i class="fas fa-step-forward ml-1.5"></i>
+                    </button>
+                    <button id="nextItemBtn" class="tech-button px-3 py-1.5 rounded-lg bg-gradient-to-r from-green-600 to-teal-600 text-white font-medium text-sm hover:from-green-700 hover:to-teal-700 transition-all">
+                        Next <i class="fas fa-chevron-right ml-1.5"></i>
+                    </button>
+                </div>
+                <div>
+                    <button id="finishEvaluationBtn" class="tech-button px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium text-sm hover:from-purple-700 hover:to-pink-700 transition-all">
+                        <i class="fas fa-check-circle mr-1.5"></i> Finish
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="annotationContextMenu" class="fixed z-[100] hidden bg-slate-800 border border-slate-600 rounded-lg shadow-xl py-2 w-48">
+        <a href="#" id="addAnnotationBtn" class="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-blue-600 hover:text-white">
+            <i class="fas fa-highlighter fa-fw mr-2"></i>Annotate Selection
+        </a>
+    </div>
+
+    <div id="annotationInputModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99] hidden flex items-center justify-center">
+        <div class="glass-dark rounded-xl overflow-hidden max-w-md w-full neon-border">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700/30">
+                <h3 class="text-lg font-semibold text-blue-100 font-display">Add Annotation</h3>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-400 mb-2">Selected Text:</label>
+                    <p id="annotatedTextPreview" class="text-sm text-gray-300 bg-slate-800/50 p-3 rounded-lg border border-slate-700/50 max-h-24 overflow-y-auto"></p>
+                </div>
+                <div class="mb-6">
+                    <label for="annotationCommentInput" class="block text-sm font-medium text-gray-400 mb-2">Comment:</label>
+                    <textarea id="annotationCommentInput" rows="3" class="w-full px-4 py-3 rounded-lg frost-input text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none" placeholder="Enter your comment for this selection..."></textarea>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancelAnnotationBtn" class="px-4 py-2 rounded-lg text-gray-300 bg-gray-800 border border-gray-700 hover:bg-gray-700 transition-colors text-sm">Cancel</button>
+                    <button type="button" id="saveAnnotationBtn" class="tech-button px-5 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium text-sm">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

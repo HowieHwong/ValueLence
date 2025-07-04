@@ -1,0 +1,451 @@
+/* Glassmorphism and Neomorphism Effects */
+.glass {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.2);
+}
+
+.glass-dark {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.1);
+}
+
+.neo-inset {
+  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.1),
+              inset -3px -3px 6px rgba(255, 255, 255, 0.7);
+  background: #f8fafc;
+}
+
+.neo-button {
+  box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.1),
+              -5px -5px 10px rgba(255, 255, 255, 0.8);
+  background: #f1f5f9;
+  transition: all 0.2s ease;
+}
+
+.neo-button:active {
+  box-shadow: inset 3px 3px 5px rgba(0, 0, 0, 0.1),
+              inset -3px -3px 5px rgba(255, 255, 255, 0.7);
+}
+
+/* Frosted Glass Card Effects */
+.frosted-card {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(209, 213, 219, 0.3);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 
+              0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.frosted-dark {
+  background: rgba(17, 25, 40, 0.75);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.125);
+}
+
+.frosted-light {
+    background: rgba(249, 247, 224, 0.75); /* #f9f7e0 with 75% opacity */
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(232, 230, 209, 0.5); /* Lighter border based on #e8e6d1 */
+}
+
+/* Gradient Backgrounds */
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.bg-gradient-secondary {
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+}
+
+.bg-gradient-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.bg-gradient-dark {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+}
+
+.bg-gradient-cool {
+  background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 50%, #0ea5e9 100%);
+}
+
+.bg-gradient-cosmos {
+  background: linear-gradient(to bottom right, #111827, #1e1b4b, #4c1d95);
+}
+
+/* Futuristic Tech Background */
+.bg-tech-pattern {
+  background-color: #0f172a;
+  background-image: 
+    radial-gradient(circle at 25px 25px, rgba(255, 255, 255, 0.15) 2%, transparent 0%),
+    radial-gradient(circle at 75px 75px, rgba(255, 255, 255, 0.15) 2%, transparent 0%);
+  background-size: 100px 100px;
+}
+
+/* Modern Frost Effects for Inputs */
+.frost-input {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+}
+
+.frost-input:focus {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Futuristic Button Styles */
+.tech-button {
+  position: relative;
+  background: rgba(99, 102, 241, 0.1);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.tech-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: 0.5s;
+}
+
+.tech-button:hover::before {
+  left: 100%;
+}
+
+.tech-button:hover {
+  background: rgba(99, 102, 241, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Animation Effects */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.5);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.7);
+}
+
+/* Custom Shadow Effects */
+.shadow-blue-glow {
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+.shadow-sharp {
+  box-shadow: 
+    rgba(50, 50, 93, 0.25) 0px 13px 27px -5px,
+    rgba(0, 0, 0, 0.3) 0px 8px 16px -8px;
+}
+
+/* Tech Lines Background */
+.tech-lines-bg {
+  background-color: #0f172a;
+  background-image: linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+                    linear-gradient(to right, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Dark Mode Glass Elements */
+.dark .glass-dark {
+    background-color: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(30, 41, 59, 0.4);
+    box-shadow: 0 8px 32px rgba(2, 6, 23, 0.3);
+}
+
+.dark .frosted-dark {
+    background-color: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(30, 41, 59, 0.5);
+}
+
+.dark .frosted-card {
+    background-color: rgba(30, 41, 59, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(51, 65, 85, 0.2);
+}
+
+.dark .frost-input {
+    background-color: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(51, 65, 85, 0.3);
+    color: #e2e8f0;
+}
+
+.dark .tech-button {
+    background-color: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #93c5fd;
+    transition: all 0.2s ease;
+}
+
+.dark .tech-button:hover {
+    background-color: rgba(59, 130, 246, 0.3);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.dark .shadow-blue-glow {
+    box-shadow: 0 0 15px rgba(0, 243, 255, 0.4);
+}
+
+/* Light Mode Glass Elements */
+html:not(.dark) .glass-dark {
+    background-color: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 8px 32px rgba(148, 163, 184, 0.15);
+}
+
+html:not(.dark) .frosted-dark {
+    background-color: rgba(249, 247, 224, 0.75); /* #f9f7e0 with 75% opacity */
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(232, 230, 209, 0.5); /* Lighter border based on #e8e6d1 */
+}
+
+html:not(.dark) .frosted-card {
+    background-color: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(203, 213, 225, 0.3);
+}
+
+html:not(.dark) .frost-input {
+    background-color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(203, 213, 225, 0.5);
+    color: #334155;
+}
+
+html:not(.dark) .tech-button {
+    background-color: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    color: #1d4ed8;
+    transition: all 0.2s ease;
+}
+
+html:not(.dark) .tech-button:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #1e40af;
+    transform: translateY(-1px);
+}
+
+html:not(.dark) .shadow-blue-glow {
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
+}
+
+/* Common Glassmorphism Style */
+.frosted-blur {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.full-width {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  left: 0;
+  right: 0;
+}
+
+/* Light Mode Sidebar Text & Elements */
+html:not(.dark) #sidebar .border-indigo-900\/30 {
+    border-color: rgba(212, 208, 188, 0.4); /* Lighter border */
+}
+
+html:not(.dark) #sidebar .text-gray-400 {
+    color: #4a5568; /* var(--text-muted) */
+}
+
+html:not(.dark) #sidebar .hover\:text-white:hover {
+    color: #1a202c; /* var(--text-primary) */
+}
+
+html:not(.dark) #sidebar .bg-gradient-to-r.from-blue-900\/40 {
+    background: rgba(249, 247, 224, 0.5);
+}
+
+html:not(.dark) #sidebar .text-transparent.bg-gradient-to-r.from-blue-300 {
+    color: #2d3748; /* var(--text-secondary) */
+    background-image: none;
+    -webkit-text-fill-color: initial;
+    -webkit-background-clip: initial;
+    animation: none;
+}
+
+html:not(.dark) #sidebar .nav-item a {
+    color: #2d3748; /* var(--text-secondary) */
+}
+
+html:not(.dark) #sidebar .nav-item a:hover {
+    background-color: rgba(232, 230, 209, 0.7);
+}
+
+html:not(.dark) #sidebar .nav-item .active-nav {
+    background-color: rgba(221, 218, 199, 0.9);
+    color: #1a202c; /* var(--text-primary) */
+}
+
+html:not(.dark) #sidebar .nav-item i {
+    color: #4a5568; /* var(--text-muted) */
+}
+
+html:not(.dark) #sidebar .active-nav i {
+    color: #2563eb; /* var(--primary-color) */
+}
+
+html:not(.dark) #sidebar .ml-auto {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #2563eb; /* var(--primary-color) */
+}
+
+html:not(.dark) #sidebar .font-display {
+    color: #4a5568; /* var(--text-muted) */
+}
+
+html:not(.dark) #sidebar .theme-switch-icon .fa-sun {
+    display: none;
+}
+
+html:not(.dark) #sidebar .theme-switch-icon .fa-moon {
+    display: inline-block;
+}
+
+html:not(.dark) .glass-dark {
+    background-color: rgba(249, 247, 224, 0.7);
+}
+
+/* Value Frameworks Light Mode Text Colors */
+html:not(.dark) .text-gray-300 {
+    color: #1f2937; /* Much darker text for better readability */
+}
+
+html:not(.dark) .text-gray-400 {
+    color: #374151; /* Darker text for better readability */
+}
+
+html:not(.dark) .text-gray-500 {
+    color: #4b5563; /* Darker text for better readability */
+}
+
+html:not(.dark) .value-item label {
+    color: #111827 !important; /* Force darker text for value labels */
+}
+
+html:not(.dark) .framework-header h4 {
+    color: #111827 !important; /* Force darker text for framework headers */
+}
+
+html:not(.dark) .framework-toggle {
+    color: #374151 !important; /* Darker toggle icon */
+}
+
+html:not(.dark) .checkbox-custom {
+    border-color: #4b5563 !important; /* Darker checkbox borders */
+}
+
+html:not(.dark) .info-tooltip {
+    color: #4b5563 !important; /* Darker info icons */
+}
+
+/* Analysis Settings Light Mode Text Colors */
+html:not(.dark) #analysis-view .text-gray-200,
+html:not(.dark) #analysis-view .text-gray-300 {
+    color: #111827 !important; /* Very dark text for analysis settings */
+}
+
+html:not(.dark) #analysis-view .text-gray-400 {
+    color: #1f2937 !important; /* Dark text for analysis settings */
+}
+
+html:not(.dark) #analysis-view label.text-gray-400 {
+    color: #1f2937 !important;
+    font-weight: 500;
+}
+
+html:not(.dark) #analysis-view .text-xs.text-gray-400 {
+    color: #374151 !important; /* Darker text for small helper text */
+}
+
+html:not(.dark) #analysis-view .text-sm.text-gray-300 {
+    color: #1f2937 !important; /* Darker text for status messages */
+}
+
+html:not(.dark) #analysis-view .bg-slate-800\/20 {
+    background-color: rgba(249, 247, 224, 0.3) !important; /* Lighter background to match theme */
+    border-color: rgba(212, 208, 188, 0.5) !important; /* Matching border */
+}
+
+html:not(.dark) #analysis-view .bg-slate-800\/50 {
+    background-color: rgba(249, 247, 224, 0.5) !important; /* Lighter background to match theme */
+    border-color: rgba(212, 208, 188, 0.6) !important; /* Matching border */
+} 
